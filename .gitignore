@@ -1,0 +1,6 @@
+NoteKeeper.sln
+packages/
+TestResults/
+.vs
+*/bin
+*/obj
