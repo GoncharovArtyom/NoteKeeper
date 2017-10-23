@@ -7,8 +7,8 @@
     <ProjectGuid>{0C6D8273-E0C1-498E-811F-9435BDAC8103}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>DataLayer</RootNamespace>
-    <AssemblyName>DataLayer</AssemblyName>
+    <RootNamespace>NoteKeeper.DataLayer</RootNamespace>
+    <AssemblyName>NoteKeeper.DataLayer</AssemblyName>
     <TargetFrameworkVersion>v4.5.2</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
   </PropertyGroup>

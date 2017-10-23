@@ -19,7 +19,28 @@ namespace NoteKeeper.DataLayer.Sql
         }
         public User ChangeName(User user, string newName)
         {
-            throw new NotImplementedException();
+            if (user.Id == null || newName == null)
+            {
+                throw new ArgumentException("Id and newName shouldn't be null");
+            }
+            using (var connection = new SqlConnection(_connectionString))
+            {
+                connection.Open();
+                using (var command = connection.CreateCommand())
+                {
+                    command.CommandText =
+                        "update Users " +
+                        "set name = @newName " +
+                        "where id = @Id;";
+                    command.Parameters.AddWithValue("@newName", newName);
+                    command.Parameters.AddWithValue("@Id", user.Id);
+
+                    command.ExecuteNonQuery();
+
+                    user.Name = newName;
+                    return user;
+                }
+            }
         }
 
         public User Create(User user)

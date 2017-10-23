@@ -56,6 +56,27 @@ namespace NoteKeeper.DataLayer.Sql.Test
 
         }
 
+        public void ChangeUserNameTest()
+        {
+            //arrange
+            var user = new User
+            {
+                Name = "Vasiliy",
+                Email = Guid.NewGuid().ToString()
+            };
+            _usersToDelete.Add(user);
+
+            string newName = "Ivan";
+
+            //act
+            note = _repository.Create(note);
+            note = _repository.ChangeHeading(note, newHeading);
+
+            //assert
+            var newNote = _repository.Get(note.Id);
+            Assert.AreEqual(note.Heading, newNote.Heading);
+        }
+
         [TestMethod]
         public void DeleteUserTest()
         {
