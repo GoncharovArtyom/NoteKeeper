@@ -2,7 +2,6 @@
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using NoteKeeper.Model;
 using System.Collections.Generic;
-using DataLayer;
 using System.Data.SqlClient;
 
 namespace NoteKeeper.DataLayer.Sql.Test
@@ -83,7 +82,7 @@ namespace NoteKeeper.DataLayer.Sql.Test
             tag = _repository.Create(tag);
 
             //act
-            _repository.Delete(tag);
+            _repository.Delete(tag.Id);
 
             //assert
             using (var connection = new SqlConnection(_connectionString))
@@ -135,7 +134,7 @@ namespace NoteKeeper.DataLayer.Sql.Test
 
             //act
             tag = _repository.Create(tag);
-            tag = _repository.ChangeName(tag, newName);
+            _repository.ChangeName(tag.Id, newName);
 
             //assert
             var newTag = _repository.Get(tag.Id);
@@ -160,7 +159,7 @@ namespace NoteKeeper.DataLayer.Sql.Test
             tag1 = _repository.Create(tag1);
             tag2 = _repository.Create(tag2);
 
-            IEnumerable<Tag> result = _repository.GetByOwner(_user);
+            IEnumerable<Tag> result = _repository.GetByOwner(_user.Id);
 
             List<Tag> resultList = new List<Tag>(result);
             Assert.AreEqual(resultList.Count, 2);
@@ -197,10 +196,10 @@ namespace NoteKeeper.DataLayer.Sql.Test
             };
             var noteRepository = new NotesRepository(_connectionString);
             noteRepository.Create(note);
-            _repository.AddNote(tag1, note);
-            _repository.AddNote(tag2, note);
+            noteRepository.AddTag(note.Id, tag1.Id);
+            noteRepository.AddTag(note.Id, tag2.Id);
 
-            IEnumerable<Tag> result = _repository.GetByNote(note);
+            IEnumerable<Tag> result = _repository.GetByNote(note.Id);
 
             List<Tag> resultList = new List<Tag>(result);
             Assert.AreEqual(resultList.Count, 2);
@@ -208,7 +207,7 @@ namespace NoteKeeper.DataLayer.Sql.Test
             {
                 Assert.IsTrue(recievedTag.Id.Equals(tag1.Id) || recievedTag.Id.Equals(tag2.Id));
             }
-            noteRepository.Delete(note);
+            noteRepository.Delete(note.Id);
         }
 
         [TestCleanup]
@@ -216,7 +215,7 @@ namespace NoteKeeper.DataLayer.Sql.Test
         {
             foreach (var tag in _tagsToDelete)
             {
-                _repository.Delete(tag);
+                _repository.Delete(tag.Id);
             }
         }
 
@@ -224,10 +223,10 @@ namespace NoteKeeper.DataLayer.Sql.Test
         public static void CleanupClassData()
         {
             var userRepository = new UsersRepository(_connectionString);
-            userRepository.Delete(_user);
+            userRepository.Delete(_user.Id);
 
             var notesRepository = new NotesRepository(_connectionString);
-            notesRepository.Delete(_note);
+            notesRepository.Delete(_note.Id);
         }
     }
 }

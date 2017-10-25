@@ -2,7 +2,6 @@
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using NoteKeeper.Model;
 using System.Collections.Generic;
-using DataLayer;
 using NoteKeeper.DataLayer.Sql;
 using System.Data.SqlClient;
 
@@ -84,7 +83,7 @@ namespace NoteKeeper.DataLayer.Sql.Test
             note = _repository.Create(note);
 
             //act
-            _repository.Delete(note);
+            _repository.Delete(note.Id);
 
             //assert
             using (var connection = new SqlConnection(_connectionString))
@@ -132,9 +131,7 @@ namespace NoteKeeper.DataLayer.Sql.Test
             {
                 OwnerId = _user.Id,
                 Heading = "Test",
-                Text = "Test",
-                CreationDate = new DateTime(),
-                LastUpdateDate = new DateTime()
+                Text = "Test"
             };
 
             _notesToDelete.Add(note);
@@ -143,11 +140,12 @@ namespace NoteKeeper.DataLayer.Sql.Test
 
             //act
             note = _repository.Create(note);
-            note = _repository.ChangeHeading(note, newHeading);
+            note = _repository.ChangeHeading(note.Id, newHeading);
 
             //assert
             var newNote = _repository.Get(note.Id);
-            Assert.AreEqual(note.Heading, newNote.Heading);
+            Assert.AreEqual(note.Heading, newNote.Heading, newHeading);
+            Assert.AreEqual(note.LastUpdateDate, newNote.LastUpdateDate);
         }
 
         [TestMethod]
@@ -174,7 +172,7 @@ namespace NoteKeeper.DataLayer.Sql.Test
 
             note1 = _repository.Create(note1);
             note2 = _repository.Create(note2);
-            IEnumerable<Note> result = _repository.GetByOwner(_user);
+            IEnumerable<Note> result = _repository.GetByOwner(_user.Id);
 
             Assert.IsNotNull(result);
             List<Note> resList = new List<Note>(result);
@@ -209,13 +207,15 @@ namespace NoteKeeper.DataLayer.Sql.Test
             userRepository.Create(anotherUser);
 
             //act
-            _repository.ShareTo(note, anotherUser);
+            _repository.ShareTo(note.Id, anotherUser.Id);
 
             //assert
-            IEnumerable<SharedNote> result = _repository.GetByPartner(anotherUser);
+            IEnumerable<SharedNote> result = _repository.GetByPartner(anotherUser.Id);
             List<SharedNote> resList = new List<SharedNote>(result);
             Assert.AreEqual(resList.Count, 1);
             Assert.AreEqual(resList[0].Id, note.Id);
+
+            userRepository.Delete(anotherUser.Id);
         }
 
         [TestMethod]
@@ -242,13 +242,15 @@ namespace NoteKeeper.DataLayer.Sql.Test
             userRepository.Create(anotherUser);
 
             //act
-            _repository.ShareTo(note, anotherUser);
+            _repository.ShareTo(note.Id, anotherUser.Id);
             var resNote = _repository.Get(note.Id);
 
             //assert
             List<User> resList = new List<User>(resNote.Partners);
             Assert.AreEqual(resList.Count, 1);
             Assert.AreEqual(resList[0].Id, anotherUser.Id);
+
+            userRepository.Delete(anotherUser.Id);
         }
 
         [TestMethod]
@@ -275,8 +277,8 @@ namespace NoteKeeper.DataLayer.Sql.Test
             userRepository.Create(anotherUser);
 
             //act
-            _repository.ShareTo(note, anotherUser);
-            var result = _repository.GetByOwner(_user);
+            _repository.ShareTo(note.Id, anotherUser.Id);
+            var result = _repository.GetByOwner(_user.Id);
 
             //assert
             bool isPresent = false;
@@ -291,6 +293,8 @@ namespace NoteKeeper.DataLayer.Sql.Test
                 }
             }
             Assert.IsTrue(isPresent);
+
+            userRepository.Delete(anotherUser.Id);
         }
 
         [TestMethod]
@@ -326,11 +330,11 @@ namespace NoteKeeper.DataLayer.Sql.Test
             };
             var userRepository = new UsersRepository(_connectionString);
             userRepository.Create(anotherUser);
-            _repository.ShareTo(note1, anotherUser);
-            _repository.ShareTo(note2, anotherUser);
+            _repository.ShareTo(note1.Id, anotherUser.Id);
+            _repository.ShareTo(note2.Id, anotherUser.Id);
 
             //act
-            IEnumerable<SharedNote> result = _repository.GetByPartner(anotherUser);
+            IEnumerable<SharedNote> result = _repository.GetByPartner(anotherUser.Id);
 
             //assert
 
@@ -340,6 +344,87 @@ namespace NoteKeeper.DataLayer.Sql.Test
             {
                 Assert.IsTrue(note.Id.Equals(note1.Id) || note.Id.Equals(note2.Id));
             }
+
+            userRepository.Delete(anotherUser.Id);
+        }
+
+        [TestMethod]
+        public void RemoveAccessTest()
+        {
+            //arrange
+            var note = new Note()
+            {
+                OwnerId = _user.Id,
+                Heading = "Test",
+                Text = "Test",
+                CreationDate = new DateTime(),
+                LastUpdateDate = new DateTime()
+            };
+            _repository.Create(note);
+            _notesToDelete.Add(note);
+            var anotherUser = new User()
+            {
+                Id = Guid.NewGuid(),
+                Name = "Ivan",
+                Email = Guid.NewGuid().ToString()
+            };
+            var userRepository = new UsersRepository(_connectionString);
+            userRepository.Create(anotherUser);
+
+            //act
+            _repository.ShareTo(note.Id, anotherUser.Id);
+            _repository.RemoveAccess(note.Id, anotherUser.Id);
+
+            //assert
+            IEnumerable<SharedNote> result = _repository.GetByPartner(anotherUser.Id);
+            List<SharedNote> resList = new List<SharedNote>(result);
+            Assert.AreEqual(resList.Count, 0);
+
+            userRepository.Delete(anotherUser.Id);
+        } 
+
+        [TestMethod]
+        public void RemoveTagTest()
+        {
+            //arrange
+            var tag1 = new Tag()
+            {
+                OwnerId = _user.Id,
+                Name = "Test1"
+            };
+            var tag2 = new Tag()
+            {
+                OwnerId = _user.Id,
+                Name = "Test2"
+            };
+            var tagsRepository = new TagsRepository(_connectionString);
+            tag1 = tagsRepository.Create(tag1);
+            tag2 = tagsRepository.Create(tag2);
+            var note = new Note()
+            {
+                OwnerId = _user.Id,
+                Heading = "Test",
+                Text = "Test",
+                CreationDate = new DateTime(),
+                LastUpdateDate = new DateTime()
+            };
+            
+            _repository.Create(note);
+            _repository.AddTag(note.Id, tag1.Id);
+            _repository.AddTag(note.Id, tag2.Id);
+
+            _notesToDelete.Add(note);
+
+            //act
+            _repository.RemoveTag(note.Id, tag1.Id);
+            IEnumerable<Tag> result = tagsRepository.GetByNote(note.Id);
+
+            List<Tag> resultList = new List<Tag>(result);
+            Assert.AreEqual(resultList.Count, 1);
+            Assert.AreEqual(resultList[0].Id, tag2.Id);
+
+            tagsRepository.Delete(tag1.Id);
+            tagsRepository.Delete(tag2.Id);
         }
 
         [TestCleanup]
@@ -347,7 +432,7 @@ namespace NoteKeeper.DataLayer.Sql.Test
         {
             foreach (var note in _notesToDelete)
             {
-                _repository.Delete(note);
+                _repository.Delete(note.Id);
             }
         }
 
@@ -355,7 +440,7 @@ namespace NoteKeeper.DataLayer.Sql.Test
         public static void DeleteUser()
         {
             var userRepository = new UsersRepository(_connectionString);
-            userRepository.Delete(_user);
+            userRepository.Delete(_user.Id);
         }
     }
 }

@@ -5,14 +5,15 @@ using System.Text;
 using System.Threading.Tasks;
 using NoteKeeper.Model;
 
-namespace DataLayer
+namespace NoteKeeper.DataLayer
 {
     public interface IUsersRepository
     {
         User Get(Guid id);
         User Get(string email);
         User Create(User user);
-        void Delete(User user);
-        User ChangeName(User user, string newName);
+        void Delete(Guid id);
+        void ChangeName(Guid id, string newName);
+        IEnumerable<User> GetPartnersByNote(Guid noteId);
     }
 }

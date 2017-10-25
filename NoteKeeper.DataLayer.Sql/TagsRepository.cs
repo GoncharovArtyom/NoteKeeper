@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using DataLayer;
+using NoteKeeper.DataLayer;
 using NoteKeeper.Model;
 using System.Data.SqlClient;
 
@@ -18,33 +18,7 @@ namespace NoteKeeper.DataLayer.Sql
             _connectionString = connectionString;
         }
 
-        public void AddNote(Tag tag, Note note)
-        {
-            if (tag.OwnerId == null || tag.Name == null || note.Id == null)
-            {
-                throw new ArgumentException("Fields OwnerId, Heading, Text, CreationDate and LastUpdateDate shouldn't be null");
-            }
-            if (!note.OwnerId.Equals(tag.OwnerId))
-            {
-                throw new ArgumentException("Tag and note should belong to one user");
-            }
-
-            using (var connection = new SqlConnection(_connectionString))
-            {
-                connection.Open();
-                using (var command = connection.CreateCommand())
-                {
-                    command.CommandText =
-                        "insert into NoteTags values(@noteId, @tagId);";
-
-                    command.Parameters.AddWithValue("@noteId", note.Id);
-                    command.Parameters.AddWithValue("@tagId", tag.Id);
-                    command.ExecuteNonQuery();
-                }
-            }
-        }
-
-        public Tag ChangeName(Tag tag, string newName)
+        public void ChangeName(Guid tagId, string newName)
         {
             using (var connection = new SqlConnection(_connectionString))
             {
@@ -56,12 +30,9 @@ namespace NoteKeeper.DataLayer.Sql
                         "set name = @newName " +
                         "where id = @Id;";
                     command.Parameters.AddWithValue("@newName", newName);
-                    command.Parameters.AddWithValue("@Id", tag.Id);
+                    command.Parameters.AddWithValue("@Id", tagId);
 
                     command.ExecuteNonQuery();
-
-                    tag.Name = newName;
-                    return tag;
                 }
             }
         }
@@ -93,9 +64,9 @@ namespace NoteKeeper.DataLayer.Sql
             }
         }
 
-        public void Delete(Tag tag)
+        public void Delete(Guid tagId)
         {
-            if (tag.Id == null)
+            if (tagId == null)
             {
                 throw new ArgumentException("Field Id shouldn't be null");
             }
@@ -108,7 +79,7 @@ namespace NoteKeeper.DataLayer.Sql
                     command.CommandText =
                         "delete from Tags " +
                         "where id = @Id;";
-                    command.Parameters.AddWithValue("@Id", tag.Id);
+                    command.Parameters.AddWithValue("@Id", tagId);
                     command.ExecuteNonQuery();
                 }
             }
@@ -145,7 +116,7 @@ namespace NoteKeeper.DataLayer.Sql
             }
         }
 
-        public IEnumerable<Tag> GetByNote(Note note)
+        public IEnumerable<Tag> GetByNote(Guid noteId)
         {
             using (var connection = new SqlConnection(_connectionString))
             {
@@ -156,7 +127,7 @@ namespace NoteKeeper.DataLayer.Sql
                 {
                     getNoteCommand.CommandText = "select * from Tags " +
                         "join NoteTags on note_id = @noteId and id = tag_id;";
-                    getNoteCommand.Parameters.AddWithValue("@noteId", note.Id);
+                    getNoteCommand.Parameters.AddWithValue("@noteId", noteId);
 
                     var reader = getNoteCommand.ExecuteReader();
                     result = new List<Tag>();
@@ -178,7 +149,7 @@ namespace NoteKeeper.DataLayer.Sql
             }
         }
 
-        public IEnumerable<Tag> GetByOwner(User owner)
+        public IEnumerable<Tag> GetByOwner(Guid ownerId)
         {
             using (var connection = new SqlConnection(_connectionString))
             {
@@ -189,7 +160,7 @@ namespace NoteKeeper.DataLayer.Sql
                 {
                     getNoteCommand.CommandText = "select * from Tags " +
                         "where user_id = @Id;";
-                    getNoteCommand.Parameters.AddWithValue("@Id", owner.Id);
+                    getNoteCommand.Parameters.AddWithValue("@Id", ownerId);
 
                     var reader = getNoteCommand.ExecuteReader();
                     result = new List<Tag>();

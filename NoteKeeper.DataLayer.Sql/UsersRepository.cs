@@ -6,7 +6,6 @@ using System.Threading.Tasks;
 using NoteKeeper.Model;
 using NoteKeeper.DataLayer;
 using System.Data.SqlClient;
-using DataLayer;
 
 namespace NoteKeeper.DataLayer.Sql
 {
@@ -17,9 +16,9 @@ namespace NoteKeeper.DataLayer.Sql
         {
             _connectionString = connectionString;
         }
-        public User ChangeName(User user, string newName)
+        public void ChangeName(Guid id, string newName)
         {
-            if (user.Id == null || newName == null)
+            if (id == null || newName == null)
             {
                 throw new ArgumentException("Id and newName shouldn't be null");
             }
@@ -33,12 +32,9 @@ namespace NoteKeeper.DataLayer.Sql
                         "set name = @newName " +
                         "where id = @Id;";
                     command.Parameters.AddWithValue("@newName", newName);
-                    command.Parameters.AddWithValue("@Id", user.Id);
+                    command.Parameters.AddWithValue("@Id", id);
 
                     command.ExecuteNonQuery();
-
-                    user.Name = newName;
-                    return user;
                 }
             }
         }
@@ -71,9 +67,9 @@ namespace NoteKeeper.DataLayer.Sql
             }
         }
 
-        public void Delete(User user)
+        public void Delete(Guid id)
         {
-            if (user.Id == null)
+            if (id == null)
             {
                 throw new ArgumentException("Fields Id shouldn't be null");
             }
@@ -85,7 +81,7 @@ namespace NoteKeeper.DataLayer.Sql
                 {
                     command.CommandText =
                         "delete from Users where id = @Id;";
-                    command.Parameters.AddWithValue("@Id", user.Id);
+                    command.Parameters.AddWithValue("@Id", id);
                     command.ExecuteNonQuery();
                 }
             }
@@ -153,6 +149,38 @@ namespace NoteKeeper.DataLayer.Sql
                         };
                     }
                     return result;
+                }
+            }
+        }
+
+        public IEnumerable<User> GetPartnersByNote(Guid noteId)
+        {
+            using(var connection = new SqlConnection(_connectionString))
+            {
+                connection.Open();
+                var partners = new List<User>();
+                using (var getPartnersCommend = connection.CreateCommand())
+                {
+                    getPartnersCommend.CommandText =
+                        "select * from Users " +
+                        "join SharedNotes on note_id = @id and user_id = id";
+                    getPartnersCommend.Parameters.AddWithValue("@id", noteId);
+
+                    var reader = getPartnersCommend.ExecuteReader();
+
+                    while (reader.Read())
+                    {
+                        partners.Add(new User()
+                        {
+                            Id = new Guid(reader["Id"].ToString()),
+                            Email = reader["email"].ToString(),
+                            Name = reader["name"].ToString()
+                        });
+                    }
+
+                    reader.Close();
+
+                    return partners;
                 }
             }
         }

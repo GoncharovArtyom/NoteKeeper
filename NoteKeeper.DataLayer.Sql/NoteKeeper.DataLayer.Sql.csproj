@@ -46,13 +46,13 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\NoteKeeper.DataLayer\NoteKeeper.DataLayer.csproj">
+      <Project>{0c6d8273-e0c1-498e-811f-9435bdac8103}</Project>
+      <Name>NoteKeeper.DataLayer</Name>
+    </ProjectReference>
     <ProjectReference Include="..\NoteKeeper.Model\NoteKeeper.Model.csproj">
       <Project>{af636358-5489-4930-90d6-c57ce7750c51}</Project>
       <Name>NoteKeeper.Model</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\NoteKeepr.DataLayer\NoteKeeper.DataLayer.csproj">
-      <Project>{0C6D8273-E0C1-498E-811F-9435BDAC8103}</Project>
-      <Name>NoteKeeper.DataLayer</Name>
     </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

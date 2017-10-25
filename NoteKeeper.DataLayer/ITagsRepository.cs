@@ -5,16 +5,15 @@ using System.Text;
 using System.Threading.Tasks;
 using NoteKeeper.Model;
 
-namespace DataLayer
+namespace NoteKeeper.DataLayer
 {
     public interface ITagsRepository
     {
         Tag Get(Guid id);
         Tag Create(Tag tag);
-        Tag ChangeName(Tag tag, string newName);
-        void AddNote(Tag tag, Note note);
-        IEnumerable<Tag> GetByOwner(User owner);
-        IEnumerable<Tag> GetByNote(Note note);
-        void Delete(Tag tag);
+        void ChangeName(Guid tagId, string newName);
+        IEnumerable<Tag> GetByOwner(Guid ownerId);
+        IEnumerable<Tag> GetByNote(Guid noteId);
+        void Delete(Guid tagId);
     }
 }
