@@ -7,6 +7,8 @@ using System.Web.Http;
 using NoteKeeper.DataLayer;
 using NoteKeeper.DataLayer.Sql;
 using NoteKeeper.Model;
+using NoteKeeper.Api.Filters;
+using NoteKeeper.Logger;
 
 namespace NoteKeeper.Api.Controllers
 {
@@ -31,8 +33,11 @@ namespace NoteKeeper.Api.Controllers
         /// <returns>Пользователь</returns>
         [HttpGet]
         [Route("api/users/{id}")]
+        [HandleExceptionFilter]
         public User Get(Guid id)
         {
+            Log.Instance.Info("Получение пользователя: Id = {0}", id);
+
             return _usersRepository.Get(id);
         }
 
@@ -43,9 +48,13 @@ namespace NoteKeeper.Api.Controllers
         /// <returns>Созданный пользователь</returns>
         [HttpPost]
         [Route("api/users")]
+        [ValidateModelFilter]
+        [HandleExceptionFilter]
         public User CreateUser([FromBody] User newUser)
         {
-           return _usersRepository.Create(newUser);
+            Log.Instance.Info("Создание пользователя: Email = {0}", newUser.Email);
+
+            return _usersRepository.Create(newUser);
         }
 
         /// <summary>
@@ -54,8 +63,11 @@ namespace NoteKeeper.Api.Controllers
         /// <param name="id">идентификатор</param>
         [HttpDelete]
         [Route("api/users/{id}")]
+        [HandleExceptionFilter]
         public void DeleteUser(Guid id)
         {
+            Log.Instance.Info("Удаление пользователя: Id = {0}", id);
+
             _usersRepository.Delete(id);
         }
 
@@ -66,8 +78,11 @@ namespace NoteKeeper.Api.Controllers
         /// <param name="newName">Новое имя</param>
         [HttpPut]
         [Route("api/users/{id}/name")]
+        [HandleExceptionFilter]
         public void ChangeUserName(Guid id, [FromBody] string newName)
         {
+            Log.Instance.Info("Изменение имени пользователя: Id = {0}", id);
+
             _usersRepository.ChangeName(id, newName);
         }
 
@@ -78,8 +93,11 @@ namespace NoteKeeper.Api.Controllers
         /// <returns>Коллекция заметок пользователя</returns>
         [HttpGet]
         [Route("api/users/{id}/notes")]
+        [HandleExceptionFilter]
         public IEnumerable<Note> GetUserNotes(Guid id)
         {
+            Log.Instance.Info("Получение заметок пользователя: Id = {0}", id);
+
             return _notesRepository.GetByOwner(id);
         }
 
@@ -90,8 +108,11 @@ namespace NoteKeeper.Api.Controllers
         /// <returns>Коллекция тегов пользователя</returns>
         [HttpGet]
         [Route("api/users/{id}/tags")]
+        [HandleExceptionFilter]
         public IEnumerable<Tag> GetUserTags(Guid id)
         {
+            Log.Instance.Info("Получение тегов пользователя: Id = {0}", id);
+
             return _tagsRepository.GetByOwner(id);
         }
 
@@ -102,8 +123,11 @@ namespace NoteKeeper.Api.Controllers
         /// <returns>Коллекция заметок</returns>
         [HttpGet]
         [Route("api/users/{id}/shared-notes")]
+        [HandleExceptionFilter]
         public IEnumerable<SharedNote> GetNotesSharedToUser(Guid userId)
         {
+            Log.Instance.Info("Получение заметок, которыми поделились с пользователем: Id = {0}", userId);
+
             return _notesRepository.GetByPartner(userId);
         }
     }

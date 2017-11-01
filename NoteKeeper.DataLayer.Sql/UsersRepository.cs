@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using NoteKeeper.Model;
-using NoteKeeper.DataLayer;
+using NoteKeeper.DataLayer.Exceptions;
 using System.Data.SqlClient;
 
 namespace NoteKeeper.DataLayer.Sql
@@ -18,10 +18,17 @@ namespace NoteKeeper.DataLayer.Sql
         }
         public void ChangeName(Guid id, string newName)
         {
-            if (id == null || newName == null)
+            if (newName.Length > 255)
             {
-                throw new ArgumentException("Id and newName shouldn't be null");
-            }
+                throw new ChangeException<string>("Имя слишком длинное")
+                {
+                    Id = id,
+                    TypeName = typeof(User).ToString(),
+                    FieldName = "Name",
+                    NewValue = newName
+                };
+            };
+
             using (var connection = new SqlConnection(_connectionString))
             {
                 connection.Open();
@@ -35,21 +42,50 @@ namespace NoteKeeper.DataLayer.Sql
                     command.Parameters.AddWithValue("@Id", id);
 
                     command.ExecuteNonQuery();
+
                 }
             }
         }
 
         public User Create(User user)
         {
-            if (user.Name == null || user.Email == null)
+            if (user.Name.Length > 255)
             {
-                throw new ArgumentException("Fields Name, Email shouldn't be null");
+                throw new CreateException<User>("Имя слишком длинное")
+                {
+                    Item = user
+                };
+            }
+            if (user.Email.Length > 255)
+            {
+                throw new CreateException<User>("Email слишком длинный")
+                {
+                    Item = user
+                };
             }
             using (var connection = new SqlConnection(_connectionString))
             {
                 connection.Open();
+                using (var command = connection.CreateCommand())
+                {
+                    command.CommandText =
+                        "select * from Users " +
+                        "where email = @Email";
+                    command.Parameters.AddWithValue("@Email", user.Email);
 
-                using(var command = connection.CreateCommand())
+                    using (var reader = command.ExecuteReader())
+                    {
+                        if (reader.HasRows)
+                        {
+                            throw new CreateException<User>("Email уже существует")
+                            {
+                                Item = user
+                            };
+                        }
+                    }
+                }
+
+                using (var command = connection.CreateCommand())
                 {
                     command.CommandText =
                         "insert into Users values(@Id, @Name, @Email, 1234);";
@@ -62,6 +98,7 @@ namespace NoteKeeper.DataLayer.Sql
 
                     command.ExecuteNonQuery();
 
+
                     return user;
                 }
             }
@@ -69,10 +106,6 @@ namespace NoteKeeper.DataLayer.Sql
 
         public void Delete(Guid id)
         {
-            if (id == null)
-            {
-                throw new ArgumentException("Fields Id shouldn't be null");
-            }
             using (var connection = new SqlConnection(_connectionString))
             {
                 connection.Open();
@@ -82,17 +115,15 @@ namespace NoteKeeper.DataLayer.Sql
                     command.CommandText =
                         "delete from Users where id = @Id;";
                     command.Parameters.AddWithValue("@Id", id);
+
                     command.ExecuteNonQuery();
+
                 }
             }
         }
 
         public User Get(Guid id)
         {
-            if (id == null)
-            {
-                throw new ArgumentNullException("Id shouldn't be null");
-            }
             User result = null;
             using (var connection = new SqlConnection(_connectionString))
             {
@@ -155,7 +186,7 @@ namespace NoteKeeper.DataLayer.Sql
 
         public IEnumerable<User> GetPartnersByNote(Guid noteId)
         {
-            using(var connection = new SqlConnection(_connectionString))
+            using (var connection = new SqlConnection(_connectionString))
             {
                 connection.Open();
                 var partners = new List<User>();

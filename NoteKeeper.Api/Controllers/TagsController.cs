@@ -7,6 +7,8 @@ using System.Web.Http;
 using NoteKeeper.Model;
 using NoteKeeper.DataLayer;
 using NoteKeeper.DataLayer.Sql;
+using NoteKeeper.Api.Filters;
+using NoteKeeper.Logger;
 
 namespace NoteKeeper.Api.Controllers
 {
@@ -30,8 +32,11 @@ namespace NoteKeeper.Api.Controllers
         /// <param name="id">Идентификатор тега</param>
         [HttpDelete]
         [Route("api/tags/{id}")]
+        [HandleExceptionFilter]
         public void DeleteTag(Guid id)
         {
+            Log.Instance.Info("Удаление тега: Id = {0}", id);
+
             _tagsRepository.Delete(id);
         }
 
@@ -42,8 +47,12 @@ namespace NoteKeeper.Api.Controllers
         /// <returns>Созданный тег</returns>
         [HttpPost]
         [Route("api/tags")]
+        [HandleExceptionFilter]
+        [ValidateModelFilter]
         public Tag CreateTag([FromBody] Tag newTag)
         {
+            Log.Instance.Info("Создание тега: OwnerId = {0}", newTag.OwnerId);
+
             return _tagsRepository.Create(newTag);
         }
 
@@ -54,8 +63,11 @@ namespace NoteKeeper.Api.Controllers
         /// <param name="newName">Новое имя</param>
         [HttpPut]
         [Route("api/tags/{id}/name")]
+        [HandleExceptionFilter]
         public void ChangeTagName(Guid id,[FromBody] string newName)
         {
+            Log.Instance.Info("Изменение названия тега: Id = {0}", id);
+
             _tagsRepository.ChangeName(id, newName);
         }
 
@@ -66,8 +78,11 @@ namespace NoteKeeper.Api.Controllers
         /// <returns>Коллекция заметок</returns>
         [HttpGet]
         [Route("api/tags/{id}/notes")]
+        [HandleExceptionFilter]
         public IEnumerable<Note> GetTagNotes(Guid id)
         {
+            Log.Instance.Info("Получение заметок с тегом: Id = {0}", id);
+
             return _notesRepository.GetByTag(id);
         }
     }

@@ -55,6 +55,9 @@
     <Reference Include="Newtonsoft.Json, Version=7.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
       <HintPath>..\packages\Newtonsoft.Json.7.0.1\lib\net45\Newtonsoft.Json.dll</HintPath>
     </Reference>
+    <Reference Include="NLog, Version=4.0.0.0, Culture=neutral, PublicKeyToken=5120e14c03d0593c, processorArchitecture=MSIL">
+      <HintPath>..\packages\NLog.4.4.12\lib\net45\NLog.dll</HintPath>
+    </Reference>
     <Reference Include="Swashbuckle.Core, Version=1.0.0.0, Culture=neutral, PublicKeyToken=cd1bb07a5ac7c7bc, processorArchitecture=MSIL">
       <HintPath>..\packages\Swashbuckle.Core.5.6.0\lib\net40\Swashbuckle.Core.dll</HintPath>
     </Reference>
@@ -68,6 +71,21 @@
     <Reference Include="System.Core" />
     <Reference Include="System.Data.DataSetExtensions" />
     <Reference Include="System.Web.Extensions" />
+    <Reference Include="System.Web.Helpers, Version=3.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
+      <HintPath>..\packages\Microsoft.AspNet.WebPages.3.2.3\lib\net45\System.Web.Helpers.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Web.Razor, Version=3.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
+      <HintPath>..\packages\Microsoft.AspNet.Razor.3.2.3\lib\net45\System.Web.Razor.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Web.WebPages, Version=3.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
+      <HintPath>..\packages\Microsoft.AspNet.WebPages.3.2.3\lib\net45\System.Web.WebPages.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Web.WebPages.Deployment, Version=3.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
+      <HintPath>..\packages\Microsoft.AspNet.WebPages.3.2.3\lib\net45\System.Web.WebPages.Deployment.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Web.WebPages.Razor, Version=3.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
+      <HintPath>..\packages\Microsoft.AspNet.WebPages.3.2.3\lib\net45\System.Web.WebPages.Razor.dll</HintPath>
+    </Reference>
     <Reference Include="System.Xml.Linq" />
     <Reference Include="System.Drawing" />
     <Reference Include="System.Web" />
@@ -100,6 +118,8 @@
     <Compile Include="Controllers\NotesController.cs" />
     <Compile Include="Controllers\TagsController.cs" />
     <Compile Include="Controllers\UsersController.cs" />
+    <Compile Include="Filters\HandleExceptionFilter.cs" />
+    <Compile Include="Filters\ValidateModelFilter.cs" />
     <Compile Include="Global.asax.cs">
       <DependentUpon>Global.asax</DependentUpon>
     </Compile>
@@ -115,6 +135,10 @@
     </None>
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\NoteKeeper.DataLayer.Exceptions\NoteKeeper.DataLayer.Exceptions.csproj">
+      <Project>{d37fbdc6-7672-41d6-8e89-a1e644e0474d}</Project>
+      <Name>NoteKeeper.DataLayer.Exceptions</Name>
+    </ProjectReference>
     <ProjectReference Include="..\NoteKeeper.DataLayer.Sql\NoteKeeper.DataLayer.Sql.csproj">
       <Project>{e9a9e12f-7881-4d33-ae6f-92e3f7ba761d}</Project>
       <Name>NoteKeeper.DataLayer.Sql</Name>
@@ -122,6 +146,10 @@
     <ProjectReference Include="..\NoteKeeper.DataLayer\NoteKeeper.DataLayer.csproj">
       <Project>{0c6d8273-e0c1-498e-811f-9435bdac8103}</Project>
       <Name>NoteKeeper.DataLayer</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\NoteKeeper.Logger\NoteKeeper.Logger.csproj">
+      <Project>{2ede2780-323b-4979-8f89-f343c9661f67}</Project>
+      <Name>NoteKeeper.Logger</Name>
     </ProjectReference>
     <ProjectReference Include="..\NoteKeeper.Model\NoteKeeper.Model.csproj">
       <Project>{af636358-5489-4930-90d6-c57ce7750c51}</Project>

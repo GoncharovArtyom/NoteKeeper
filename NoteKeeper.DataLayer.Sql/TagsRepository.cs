@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using NoteKeeper.DataLayer;
 using NoteKeeper.Model;
 using System.Data.SqlClient;
+using NoteKeeper.DataLayer.Exceptions;
 
 namespace NoteKeeper.DataLayer.Sql
 {
@@ -20,6 +21,16 @@ namespace NoteKeeper.DataLayer.Sql
 
         public void ChangeName(Guid tagId, string newName)
         {
+            if (newName.Length > 255)
+            {
+                throw new ChangeException<string>("Слишком длинное имя")
+                {
+                    Id = tagId,
+                    TypeName = typeof(Tag).ToString(),
+                    FieldName = "Name",
+                    NewValue = newName
+                };
+            }
             using (var connection = new SqlConnection(_connectionString))
             {
                 connection.Open();
@@ -33,20 +44,25 @@ namespace NoteKeeper.DataLayer.Sql
                     command.Parameters.AddWithValue("@Id", tagId);
 
                     command.ExecuteNonQuery();
+
                 }
             }
         }
 
         public Tag Create(Tag tag)
         {
-            if (tag.OwnerId == null || tag.Name == null)
+            if (tag.Name.Length > 255)
             {
-                throw new ArgumentException("Fields OwnerId, Heading, Text, CreationDate and LastUpdateDate shouldn't be null");
+                throw new CreateException<Tag>("Слишком длинное имя")
+                {
+                    Item = tag
+                };
             }
 
             using (var connection = new SqlConnection(_connectionString))
             {
                 connection.Open();
+
                 using (var command = connection.CreateCommand())
                 {
                     command.CommandText =
@@ -57,6 +73,7 @@ namespace NoteKeeper.DataLayer.Sql
                     command.Parameters.AddWithValue("@Id", tag.Id);
                     command.Parameters.AddWithValue("@OwnerId", tag.OwnerId);
                     command.Parameters.AddWithValue("@Name", tag.Name);
+
                     command.ExecuteNonQuery();
 
                     return tag;
@@ -66,11 +83,6 @@ namespace NoteKeeper.DataLayer.Sql
 
         public void Delete(Guid tagId)
         {
-            if (tagId == null)
-            {
-                throw new ArgumentException("Field Id shouldn't be null");
-            }
-
             using (var connection = new SqlConnection(_connectionString))
             {
                 connection.Open();
@@ -80,7 +92,9 @@ namespace NoteKeeper.DataLayer.Sql
                         "delete from Tags " +
                         "where id = @Id;";
                     command.Parameters.AddWithValue("@Id", tagId);
+
                     command.ExecuteNonQuery();
+
                 }
             }
         }
@@ -118,6 +132,11 @@ namespace NoteKeeper.DataLayer.Sql
 
         public IEnumerable<Tag> GetByNote(Guid noteId)
         {
+            if (noteId == null)
+            {
+                throw new ArgumentException("noteId shouldn't be null");
+            }
+
             using (var connection = new SqlConnection(_connectionString))
             {
                 connection.Open();
@@ -151,6 +170,11 @@ namespace NoteKeeper.DataLayer.Sql
 
         public IEnumerable<Tag> GetByOwner(Guid ownerId)
         {
+            if (ownerId == null)
+            {
+                throw new ArgumentException("ownerId shouldn't be null");
+            }
+
             using (var connection = new SqlConnection(_connectionString))
             {
                 connection.Open();

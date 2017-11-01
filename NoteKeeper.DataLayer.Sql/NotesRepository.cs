@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using NoteKeeper.Model;
 using System.Data.SqlClient;
 using NoteKeeper.DataLayer;
+using NoteKeeper.DataLayer.Exceptions;
 
 namespace NoteKeeper.DataLayer.Sql
 {
@@ -32,6 +33,7 @@ namespace NoteKeeper.DataLayer.Sql
                     command.Parameters.AddWithValue("@now", DateTime.Now);
 
                     command.ExecuteNonQuery();
+
                 }
             }
 
@@ -54,6 +56,7 @@ namespace NoteKeeper.DataLayer.Sql
                     command.Parameters.AddWithValue("@now", DateTime.Now);
 
                     command.ExecuteNonQuery();
+
                 }
             }
             return Get(noteId);
@@ -61,17 +64,32 @@ namespace NoteKeeper.DataLayer.Sql
 
         public Note Create(Note newNote)
         {
-            if (newNote.OwnerId == null || newNote.Heading == null || newNote.Text == null)
-            {
-                throw new ArgumentException("Fields Owner, Heading, Text, CreationDate and LastUpdateDate shouldn't be null");
-            }
-
             newNote.CreationDate = DateTime.Now;
             newNote.LastUpdateDate = DateTime.Now;
 
             using (var connection = new SqlConnection(_connectionString))
             {
                 connection.Open();
+
+                using (var command = connection.CreateCommand())
+                {
+                    command.CommandText =
+                        "select * from users " +
+                        "where id = @OwnerID;";
+                    command.Parameters.AddWithValue("@OwnerID", newNote.OwnerId);
+
+                    using (var reader = command.ExecuteReader())
+                    {
+                        if (!reader.HasRows)
+                        {
+                            throw new CreateException<Note>("Пользователя, которому принадлежит эта заметка, не существует")
+                            {
+                                Item = newNote
+                            };
+                        }
+                    }
+                }
+
                 using (var command = connection.CreateCommand())
                 {
                     command.CommandText =
@@ -95,11 +113,6 @@ namespace NoteKeeper.DataLayer.Sql
 
         public void Delete(Guid noteId)
         {
-            if (noteId == null)
-            {
-                throw new ArgumentException("Field Id shouldn't be null");
-            }
-
             using (var connection = new SqlConnection(_connectionString))
             {
                 connection.Open();
@@ -109,7 +122,9 @@ namespace NoteKeeper.DataLayer.Sql
                         "delete from Notes " +
                         "where id = @Id;";
                     command.Parameters.AddWithValue("@Id", noteId);
+
                     command.ExecuteNonQuery();
+
                 }
             }
         }
@@ -195,11 +210,6 @@ namespace NoteKeeper.DataLayer.Sql
 
         public IEnumerable<Note> GetByOwner(Guid ownerId)
         {
-            if (ownerId == null)
-            {
-                throw new ArgumentException("Field Id shouldn't be null");
-            }
-
             List<Note> result = null;
 
             using (var connection = new SqlConnection(_connectionString))
@@ -282,11 +292,6 @@ namespace NoteKeeper.DataLayer.Sql
 
         public IEnumerable<SharedNote> GetByPartner(Guid partnerId)
         {
-            if (partnerId == null)
-            {
-                throw new ArgumentException("Field Id shouldn't be null");
-            }
-
             List<SharedNote> result = null;
 
             using (var connection = new SqlConnection(_connectionString))
@@ -331,11 +336,6 @@ namespace NoteKeeper.DataLayer.Sql
 
         public IEnumerable<Note> GetByTag(Guid tagId)
         {
-            if (tagId == null)
-            {
-                throw new ArgumentException("Field Id shouldn't be null");
-            }
-
             List<Note> result = null;
             var tagNamesList = new List<List<String>>();
 
@@ -398,14 +398,72 @@ namespace NoteKeeper.DataLayer.Sql
 
         public void ShareTo(Guid noteId, Guid partnerId)
         {
-            if (noteId == null || partnerId == null)
-            {
-                throw new ArgumentException("Fields Id shouldn't be null");
-            }
-
             using (var connection = new SqlConnection(_connectionString))
             {
                 connection.Open();
+                using (var command = connection.CreateCommand())
+                {
+                    command.CommandText =
+                        "select * from SharedNotes " +
+                        "where note_id = @NoteId and user_id = @PartnerId";
+                    command.Parameters.AddWithValue("@NoteId", noteId);
+                    command.Parameters.AddWithValue("@PartnerId", partnerId);
+
+                    using (var reader = command.ExecuteReader())
+                    {
+                        if (reader.HasRows)
+                        {
+                            return;
+                        }
+                    }
+                }
+
+                using (var command = connection.CreateCommand())
+                {
+                    command.CommandText =
+                        "select * from Users " +
+                        "where id = @PartnerId";
+                    command.Parameters.AddWithValue("@PartnerId", partnerId);
+
+                    using (var reader = command.ExecuteReader())
+                    {
+                        if (!reader.HasRows)
+                        {
+                            throw new CreateRelationException("Такого пользователя не существует")
+                            {
+                                RelationName = "SharedNotes",
+                                FirstItemId = noteId,
+                                FirstItemTypeName = typeof(Note).ToString(),
+                                SecondItemId = partnerId,
+                                SecondItemTypeName = typeof(User).ToString()
+                            };
+                        }
+                    }
+                }
+
+                using (var command = connection.CreateCommand())
+                {
+                    command.CommandText =
+                        "select * from Notes " +
+                        "where id = @NoteId";
+                    command.Parameters.AddWithValue("@NoteId", noteId);
+
+                    using (var reader = command.ExecuteReader())
+                    {
+                        if (!reader.HasRows)
+                        {
+                            throw new CreateRelationException("Такой заметки не существует")
+                            {
+                                RelationName = "SharedNotes",
+                                FirstItemId = noteId,
+                                FirstItemTypeName = typeof(Note).ToString(),
+                                SecondItemId = partnerId,
+                                SecondItemTypeName = typeof(User).ToString()
+                            };
+                        }
+                    }
+                }
+
                 using (var command = connection.CreateCommand())
                 {
                     command.CommandText =
@@ -415,16 +473,80 @@ namespace NoteKeeper.DataLayer.Sql
                     command.Parameters.AddWithValue("@noteId", noteId);
 
                     command.ExecuteNonQuery();
+
                 }
             }
         }
 
         public void AddTag(Guid noteId, Guid tagId)
         {
-
             using (var connection = new SqlConnection(_connectionString))
             {
                 connection.Open();
+
+                using (var command = connection.CreateCommand())
+                {
+                    command.CommandText =
+                        "select * from NoteTags " +
+                        "where note_id = @NoteId and tag_id = @TagId";
+                    command.Parameters.AddWithValue("@NoteId", noteId);
+                    command.Parameters.AddWithValue("@TagId", tagId);
+
+                    using (var reader = command.ExecuteReader())
+                    {
+                        if (reader.HasRows)
+                        {
+                            return;
+                        }
+                    }
+                }
+
+                using (var command = connection.CreateCommand())
+                {
+                    command.CommandText =
+                        "select * from Tags " +
+                        "where id = @TagId";
+                    command.Parameters.AddWithValue("@TagId", tagId);
+
+                    using (var reader = command.ExecuteReader())
+                    {
+                        if (!reader.HasRows)
+                        {
+                            throw new CreateRelationException("Такого тега не существует")
+                            {
+                                RelationName = "NoteTags",
+                                FirstItemId = noteId,
+                                FirstItemTypeName = typeof(Note).ToString(),
+                                SecondItemId = tagId,
+                                SecondItemTypeName = typeof(Tag).ToString()
+                            };
+                        }
+                    }
+                }
+
+                using (var command = connection.CreateCommand())
+                {
+                    command.CommandText =
+                        "select * from Notes " +
+                        "where id = @NoteId";
+                    command.Parameters.AddWithValue("@NoteId", noteId);
+
+                    using (var reader = command.ExecuteReader())
+                    {
+                        if (!reader.HasRows)
+                        {
+                            throw new CreateRelationException("Такой заметки не существует")
+                            {
+                                RelationName = "SharedNotes",
+                                FirstItemId = noteId,
+                                FirstItemTypeName = typeof(Note).ToString(),
+                                SecondItemId = tagId,
+                                SecondItemTypeName = typeof(Tag).ToString()
+                            };
+                        }
+                    }
+                }
+
                 using (var command = connection.CreateCommand())
                 {
                     command.CommandText =
@@ -432,18 +554,15 @@ namespace NoteKeeper.DataLayer.Sql
 
                     command.Parameters.AddWithValue("@noteId", noteId);
                     command.Parameters.AddWithValue("@tagId", tagId);
+
                     command.ExecuteNonQuery();
+
                 }
             }
         }
 
         public void RemoveAccess(Guid noteId, Guid partnerId)
         {
-            if (noteId == null || partnerId == null)
-            {
-                throw new ArgumentException("Fields Id shouldn't be null");
-            }
-
             using (var connection = new SqlConnection(_connectionString))
             {
                 connection.Open();
@@ -474,7 +593,9 @@ namespace NoteKeeper.DataLayer.Sql
 
                     command.Parameters.AddWithValue("@noteId", noteId);
                     command.Parameters.AddWithValue("@tagId", tagId);
+
                     command.ExecuteNonQuery();
+
                 }
             }
         }

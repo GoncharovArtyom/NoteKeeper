@@ -4,13 +4,14 @@
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <ProjectGuid>{AF636358-5489-4930-90D6-C57CE7750C51}</ProjectGuid>
+    <ProjectGuid>{D37FBDC6-7672-41D6-8E89-A1E644E0474D}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>NoteKeeper.Model</RootNamespace>
-    <AssemblyName>NoteKeeper.Model</AssemblyName>
+    <RootNamespace>NoteKeeper.DataLayer.Exceptions</RootNamespace>
+    <AssemblyName>NoteKeeper.DataLayer.Exceptions</AssemblyName>
     <TargetFrameworkVersion>v4.5.2</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
+    <TargetFrameworkProfile />
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
@@ -31,7 +32,6 @@
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="System" />
-    <Reference Include="System.ComponentModel.DataAnnotations" />
     <Reference Include="System.Core" />
     <Reference Include="System.Xml.Linq" />
     <Reference Include="System.Data.DataSetExtensions" />
@@ -41,14 +41,16 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="SharedNote.cs" />
-    <Compile Include="Tag.cs" />
-    <Compile Include="Note.cs" />
-    <Compile Include="User.cs" />
+    <Compile Include="ChangeException.cs" />
+    <Compile Include="CreateException.cs" />
+    <Compile Include="CreateRelationException.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="packages.config" />
+    <ProjectReference Include="..\NoteKeeper.Model\NoteKeeper.Model.csproj">
+      <Project>{af636358-5489-4930-90d6-c57ce7750c51}</Project>
+      <Name>NoteKeeper.Model</Name>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>
