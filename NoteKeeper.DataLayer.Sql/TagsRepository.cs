@@ -19,8 +19,9 @@ namespace NoteKeeper.DataLayer.Sql
             _connectionString = connectionString;
         }
 
-        public void ChangeName(Guid tagId, string newName)
+        public async Task ChangeNameAsync(Guid tagId, string newName)
         {
+            //Проверка целостности
             if (newName.Length > 255)
             {
                 throw new ChangeException<string>("Слишком длинное имя")
@@ -33,7 +34,7 @@ namespace NoteKeeper.DataLayer.Sql
             }
             using (var connection = new SqlConnection(_connectionString))
             {
-                connection.Open();
+                await connection.OpenAsync();
                 using (var command = connection.CreateCommand())
                 {
                     command.CommandText =
@@ -43,14 +44,15 @@ namespace NoteKeeper.DataLayer.Sql
                     command.Parameters.AddWithValue("@newName", newName);
                     command.Parameters.AddWithValue("@Id", tagId);
 
-                    command.ExecuteNonQuery();
+                    await command.ExecuteNonQueryAsync();
 
                 }
             }
         }
 
-        public Tag Create(Tag tag)
+        public async Task<Tag> CreateAsync(Tag tag)
         {
+            //Проверка целостности
             if (tag.Name.Length > 255)
             {
                 throw new CreateException<Tag>("Слишком длинное имя")
@@ -61,7 +63,7 @@ namespace NoteKeeper.DataLayer.Sql
 
             using (var connection = new SqlConnection(_connectionString))
             {
-                connection.Open();
+                await connection.OpenAsync();
 
                 using (var command = connection.CreateCommand())
                 {
@@ -74,18 +76,18 @@ namespace NoteKeeper.DataLayer.Sql
                     command.Parameters.AddWithValue("@OwnerId", tag.OwnerId);
                     command.Parameters.AddWithValue("@Name", tag.Name);
 
-                    command.ExecuteNonQuery();
+                    await command.ExecuteNonQueryAsync();
 
                     return tag;
                 }
             }
         }
 
-        public void Delete(Guid tagId)
+        public async Task DeleteAsync(Guid tagId)
         {
             using (var connection = new SqlConnection(_connectionString))
             {
-                connection.Open();
+                await connection.OpenAsync();
                 using (var command = connection.CreateCommand())
                 {
                     command.CommandText =
@@ -93,17 +95,17 @@ namespace NoteKeeper.DataLayer.Sql
                         "where id = @Id;";
                     command.Parameters.AddWithValue("@Id", tagId);
 
-                    command.ExecuteNonQuery();
+                    await command.ExecuteNonQueryAsync();
 
                 }
             }
         }
 
-        public Tag Get(Guid id)
+        public async Task<Tag> GetAsync(Guid id)
         {
             using (var connection = new SqlConnection(_connectionString))
             {
-                connection.Open();
+                await connection.OpenAsync();
                 Tag resultTag = null;
 
                 using (var getNoteCommand = connection.CreateCommand())
@@ -111,8 +113,8 @@ namespace NoteKeeper.DataLayer.Sql
                     getNoteCommand.CommandText = "select * from Tags where id = @id;";
                     getNoteCommand.Parameters.AddWithValue("@id", id);
 
-                    var reader = getNoteCommand.ExecuteReader();
-                    if (!reader.Read())
+                    var reader = await getNoteCommand.ExecuteReaderAsync();
+                    if (!await reader.ReadAsync())
                     {
                         return resultTag;
                     }
@@ -130,16 +132,11 @@ namespace NoteKeeper.DataLayer.Sql
             }
         }
 
-        public IEnumerable<Tag> GetByNote(Guid noteId)
+        public async Task<IEnumerable<Tag>> GetByNoteAsync(Guid noteId)
         {
-            if (noteId == null)
-            {
-                throw new ArgumentException("noteId shouldn't be null");
-            }
-
             using (var connection = new SqlConnection(_connectionString))
             {
-                connection.Open();
+                await connection.OpenAsync();
                 List<Tag> result = null;
 
                 using (var getNoteCommand = connection.CreateCommand())
@@ -148,9 +145,9 @@ namespace NoteKeeper.DataLayer.Sql
                         "join NoteTags on note_id = @noteId and id = tag_id;";
                     getNoteCommand.Parameters.AddWithValue("@noteId", noteId);
 
-                    var reader = getNoteCommand.ExecuteReader();
+                    var reader = await getNoteCommand.ExecuteReaderAsync();
                     result = new List<Tag>();
-                    while (reader.Read())
+                    while (await reader.ReadAsync())
                     {
                         var currentTag = new Tag()
                         {
@@ -168,16 +165,11 @@ namespace NoteKeeper.DataLayer.Sql
             }
         }
 
-        public IEnumerable<Tag> GetByOwner(Guid ownerId)
+        public async Task<IEnumerable<Tag>> GetByOwnerAsync(Guid ownerId)
         {
-            if (ownerId == null)
-            {
-                throw new ArgumentException("ownerId shouldn't be null");
-            }
-
             using (var connection = new SqlConnection(_connectionString))
             {
-                connection.Open();
+                await connection.OpenAsync();
                 List<Tag> result = null;
 
                 using (var getNoteCommand = connection.CreateCommand())
@@ -186,9 +178,9 @@ namespace NoteKeeper.DataLayer.Sql
                         "where user_id = @Id;";
                     getNoteCommand.Parameters.AddWithValue("@Id", ownerId);
 
-                    var reader = getNoteCommand.ExecuteReader();
+                    var reader = await getNoteCommand.ExecuteReaderAsync();
                     result = new List<Tag>();
-                    while (reader.Read())
+                    while (await reader.ReadAsync())
                     {
                         var currentTag = new Tag()
                         {

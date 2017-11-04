@@ -9,11 +9,11 @@ namespace NoteKeeper.DataLayer
 {
     public interface ITagsRepository
     {
-        Tag Get(Guid id);
-        Tag Create(Tag tag);
-        void ChangeName(Guid tagId, string newName);
-        IEnumerable<Tag> GetByOwner(Guid ownerId);
-        IEnumerable<Tag> GetByNote(Guid noteId);
-        void Delete(Guid tagId);
+        Task<Tag> GetAsync(Guid id);
+        Task<Tag> CreateAsync(Tag tag);
+        Task ChangeNameAsync(Guid tagId, string newName);
+        Task<IEnumerable<Tag>> GetByOwnerAsync(Guid ownerId);
+        Task<IEnumerable<Tag>> GetByNoteAsync(Guid noteId);
+        Task DeleteAsync(Guid tagId);
     }
 }

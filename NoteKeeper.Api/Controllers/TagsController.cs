@@ -9,6 +9,7 @@ using NoteKeeper.DataLayer;
 using NoteKeeper.DataLayer.Sql;
 using NoteKeeper.Api.Filters;
 using NoteKeeper.Logger;
+using System.Threading.Tasks;
 
 namespace NoteKeeper.Api.Controllers
 {
@@ -33,11 +34,11 @@ namespace NoteKeeper.Api.Controllers
         [HttpDelete]
         [Route("api/tags/{id}")]
         [HandleExceptionFilter]
-        public void DeleteTag(Guid id)
+        public async Task DeleteTag(Guid id)
         {
             Log.Instance.Info("Удаление тега: Id = {0}", id);
 
-            _tagsRepository.Delete(id);
+            await _tagsRepository.DeleteAsync(id);
         }
 
         /// <summary>
@@ -49,11 +50,11 @@ namespace NoteKeeper.Api.Controllers
         [Route("api/tags")]
         [HandleExceptionFilter]
         [ValidateModelFilter]
-        public Tag CreateTag([FromBody] Tag newTag)
+        public async Task<Tag> CreateTag([FromBody] Tag newTag)
         {
             Log.Instance.Info("Создание тега: OwnerId = {0}", newTag.OwnerId);
 
-            return _tagsRepository.Create(newTag);
+            return await _tagsRepository.CreateAsync(newTag);
         }
 
         /// <summary>
@@ -64,11 +65,11 @@ namespace NoteKeeper.Api.Controllers
         [HttpPut]
         [Route("api/tags/{id}/name")]
         [HandleExceptionFilter]
-        public void ChangeTagName(Guid id,[FromBody] string newName)
+        public async Task ChangeTagName(Guid id,[FromBody] string newName)
         {
             Log.Instance.Info("Изменение названия тега: Id = {0}", id);
 
-            _tagsRepository.ChangeName(id, newName);
+            await _tagsRepository.ChangeNameAsync(id, newName);
         }
 
         /// <summary>
@@ -79,11 +80,11 @@ namespace NoteKeeper.Api.Controllers
         [HttpGet]
         [Route("api/tags/{id}/notes")]
         [HandleExceptionFilter]
-        public IEnumerable<Note> GetTagNotes(Guid id)
+        public async Task<IEnumerable<Note>> GetTagNotes(Guid id)
         {
             Log.Instance.Info("Получение заметок с тегом: Id = {0}", id);
 
-            return _notesRepository.GetByTag(id);
+            return await _notesRepository.GetByTagAsync(id);
         }
     }
 }

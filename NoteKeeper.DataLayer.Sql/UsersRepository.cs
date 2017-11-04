@@ -11,13 +11,14 @@ namespace NoteKeeper.DataLayer.Sql
 {
     public class UsersRepository : IUsersRepository
     {
-        private static String _connectionString;
+        private readonly String _connectionString;
         public UsersRepository(String connectionString)
         {
             _connectionString = connectionString;
         }
-        public void ChangeName(Guid id, string newName)
+        public async Task ChangeNameAsync(Guid id, string newName)
         {
+            //Проверка нарушений целостности
             if (newName.Length > 255)
             {
                 throw new ChangeException<string>("Имя слишком длинное")
@@ -31,7 +32,7 @@ namespace NoteKeeper.DataLayer.Sql
 
             using (var connection = new SqlConnection(_connectionString))
             {
-                connection.Open();
+                await connection.OpenAsync();
                 using (var command = connection.CreateCommand())
                 {
                     command.CommandText =
@@ -41,14 +42,15 @@ namespace NoteKeeper.DataLayer.Sql
                     command.Parameters.AddWithValue("@newName", newName);
                     command.Parameters.AddWithValue("@Id", id);
 
-                    command.ExecuteNonQuery();
+                    await command.ExecuteNonQueryAsync();
 
                 }
             }
         }
 
-        public User Create(User user)
+        public async Task<User> CreateAsync(User user)
         {
+            //Проверка нарушений целостности
             if (user.Name.Length > 255)
             {
                 throw new CreateException<User>("Имя слишком длинное")
@@ -56,6 +58,7 @@ namespace NoteKeeper.DataLayer.Sql
                     Item = user
                 };
             }
+            //Проверка нарушений целостности
             if (user.Email.Length > 255)
             {
                 throw new CreateException<User>("Email слишком длинный")
@@ -65,7 +68,9 @@ namespace NoteKeeper.DataLayer.Sql
             }
             using (var connection = new SqlConnection(_connectionString))
             {
-                connection.Open();
+                await connection.OpenAsync();
+                
+                //Проверка нарушений целостности
                 using (var command = connection.CreateCommand())
                 {
                     command.CommandText =
@@ -73,8 +78,9 @@ namespace NoteKeeper.DataLayer.Sql
                         "where email = @Email";
                     command.Parameters.AddWithValue("@Email", user.Email);
 
-                    using (var reader = command.ExecuteReader())
+                    using (var reader = await command.ExecuteReaderAsync())
                     {
+                        
                         if (reader.HasRows)
                         {
                             throw new CreateException<User>("Email уже существует")
@@ -96,19 +102,18 @@ namespace NoteKeeper.DataLayer.Sql
                     command.Parameters.AddWithValue("@Name", user.Name);
                     command.Parameters.AddWithValue("@Email", user.Email);
 
-                    command.ExecuteNonQuery();
-
+                    await command.ExecuteNonQueryAsync();
 
                     return user;
                 }
             }
         }
 
-        public void Delete(Guid id)
+        public async Task DeleteAsync(Guid id)
         {
             using (var connection = new SqlConnection(_connectionString))
             {
-                connection.Open();
+                await connection.OpenAsync();
 
                 using (var command = connection.CreateCommand())
                 {
@@ -116,18 +121,17 @@ namespace NoteKeeper.DataLayer.Sql
                         "delete from Users where id = @Id;";
                     command.Parameters.AddWithValue("@Id", id);
 
-                    command.ExecuteNonQuery();
-
+                    await command.ExecuteNonQueryAsync();
                 }
             }
         }
 
-        public User Get(Guid id)
+        public async Task<User> GetAsync(Guid id)
         {
             User result = null;
             using (var connection = new SqlConnection(_connectionString))
             {
-                connection.Open();
+                await connection.OpenAsync();
 
                 using (var command = connection.CreateCommand())
                 {
@@ -135,9 +139,9 @@ namespace NoteKeeper.DataLayer.Sql
                         "select * from Users " +
                         "where id = @Id;";
                     command.Parameters.AddWithValue("@Id", id);
-                    var reader = command.ExecuteReader();
+                    var reader = await command.ExecuteReaderAsync();
 
-                    if (reader.Read())
+                    if (await reader.ReadAsync())
                     {
                         result = new User()
                         {
@@ -151,16 +155,12 @@ namespace NoteKeeper.DataLayer.Sql
             }
         }
 
-        public User Get(string email)
+        public async Task<User> GetAsync(string email)
         {
-            if (email == null)
-            {
-                throw new ArgumentNullException("Email shouldn't be null");
-            }
             User result = null;
             using (var connection = new SqlConnection(_connectionString))
             {
-                connection.Open();
+                await connection.OpenAsync();
 
                 using (var command = connection.CreateCommand())
                 {
@@ -168,9 +168,9 @@ namespace NoteKeeper.DataLayer.Sql
                         "select * from Users " +
                         "where email = @Email;";
                     command.Parameters.AddWithValue("@Email", email);
-                    var reader = command.ExecuteReader();
+                    var reader = await command.ExecuteReaderAsync();
 
-                    if (reader.Read())
+                    if (await reader.ReadAsync())
                     {
                         result = new User()
                         {
@@ -184,11 +184,11 @@ namespace NoteKeeper.DataLayer.Sql
             }
         }
 
-        public IEnumerable<User> GetPartnersByNote(Guid noteId)
+        public async Task<IEnumerable<User>> GetPartnersByNoteAsync(Guid noteId)
         {
             using (var connection = new SqlConnection(_connectionString))
             {
-                connection.Open();
+                await connection.OpenAsync();
                 var partners = new List<User>();
                 using (var getPartnersCommend = connection.CreateCommand())
                 {
@@ -197,9 +197,9 @@ namespace NoteKeeper.DataLayer.Sql
                         "join SharedNotes on note_id = @id and user_id = id";
                     getPartnersCommend.Parameters.AddWithValue("@id", noteId);
 
-                    var reader = getPartnersCommend.ExecuteReader();
+                    var reader = await getPartnersCommend.ExecuteReaderAsync();
 
-                    while (reader.Read())
+                    while (await reader.ReadAsync())
                     {
                         partners.Add(new User()
                         {

@@ -9,11 +9,11 @@ namespace NoteKeeper.DataLayer
 {
     public interface IUsersRepository
     {
-        User Get(Guid id);
-        User Get(string email);
-        User Create(User user);
-        void Delete(Guid id);
-        void ChangeName(Guid id, string newName);
-        IEnumerable<User> GetPartnersByNote(Guid noteId);
+        Task<User> GetAsync(Guid id);
+        Task<User> GetAsync(string email);
+        Task<User> CreateAsync(User user);
+        Task DeleteAsync(Guid id);
+        Task ChangeNameAsync(Guid id, string newName);
+        Task<IEnumerable<User>> GetPartnersByNoteAsync(Guid noteId);
     }
 }

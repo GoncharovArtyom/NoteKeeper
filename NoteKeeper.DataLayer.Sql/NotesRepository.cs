@@ -17,11 +17,11 @@ namespace NoteKeeper.DataLayer.Sql
         {
             _connectionString = connectionString;
         }
-        public Note ChangeHeading(Guid noteId, string newHeading)
+        public async Task<Note> ChangeHeadingAsync(Guid noteId, string newHeading)
         {
             using (var connection = new SqlConnection(_connectionString))
             {
-                connection.Open();
+                await connection.OpenAsync();
                 using (var command = connection.CreateCommand())
                 {
                     command.CommandText =
@@ -32,19 +32,19 @@ namespace NoteKeeper.DataLayer.Sql
                     command.Parameters.AddWithValue("@Id", noteId);
                     command.Parameters.AddWithValue("@now", DateTime.Now);
 
-                    command.ExecuteNonQuery();
+                    await command.ExecuteNonQueryAsync();
 
                 }
             }
 
-            return Get(noteId);
+            return await GetAsync(noteId);
         }
 
-        public Note ChangeText(Guid noteId, string newText)
+        public async Task<Note> ChangeTextAsync(Guid noteId, string newText)
         {
             using (var connection = new SqlConnection(_connectionString))
             {
-                connection.Open();
+                await connection.OpenAsync();
                 using (var command = connection.CreateCommand())
                 {
                     command.CommandText =
@@ -55,22 +55,23 @@ namespace NoteKeeper.DataLayer.Sql
                     command.Parameters.AddWithValue("@Id", noteId);
                     command.Parameters.AddWithValue("@now", DateTime.Now);
 
-                    command.ExecuteNonQuery();
+                    await command.ExecuteNonQueryAsync();
 
                 }
             }
-            return Get(noteId);
+            return await GetAsync(noteId);
         }
 
-        public Note Create(Note newNote)
+        public async Task<Note> CreateAsync(Note newNote)
         {
             newNote.CreationDate = DateTime.Now;
             newNote.LastUpdateDate = DateTime.Now;
 
             using (var connection = new SqlConnection(_connectionString))
             {
-                connection.Open();
+                await connection.OpenAsync();
 
+                //Проверка нарушения целостности
                 using (var command = connection.CreateCommand())
                 {
                     command.CommandText =
@@ -78,7 +79,7 @@ namespace NoteKeeper.DataLayer.Sql
                         "where id = @OwnerID;";
                     command.Parameters.AddWithValue("@OwnerID", newNote.OwnerId);
 
-                    using (var reader = command.ExecuteReader())
+                    using (var reader = await command.ExecuteReaderAsync())
                     {
                         if (!reader.HasRows)
                         {
@@ -104,18 +105,18 @@ namespace NoteKeeper.DataLayer.Sql
                     command.Parameters.AddWithValue("@CreationDate", newNote.CreationDate.ToString("yyyy-MM-dd"));
                     command.Parameters.AddWithValue("@LastUpdateDate", newNote.LastUpdateDate.ToString("yyyy-MM-dd"));
 
-                    command.ExecuteNonQuery();
+                    await command.ExecuteNonQueryAsync();
 
                     return newNote;
                 }
             }
         }
 
-        public void Delete(Guid noteId)
+        public async Task DeleteAsync(Guid noteId)
         {
             using (var connection = new SqlConnection(_connectionString))
             {
-                connection.Open();
+                await connection.OpenAsync();
                 using (var command = connection.CreateCommand())
                 {
                     command.CommandText =
@@ -123,17 +124,16 @@ namespace NoteKeeper.DataLayer.Sql
                         "where id = @Id;";
                     command.Parameters.AddWithValue("@Id", noteId);
 
-                    command.ExecuteNonQuery();
-
+                    await command.ExecuteNonQueryAsync();
                 }
             }
         }
 
-        public Note Get(Guid id)
+        public async Task<Note> GetAsync(Guid id)
         {
             using (var connection = new SqlConnection(_connectionString))
             {
-                connection.Open();
+                await connection.OpenAsync();
                 Note resultNote = null;
                 var tagNames = new List<string>();
                 using (var getNoteCommand = connection.CreateCommand())
@@ -143,8 +143,8 @@ namespace NoteKeeper.DataLayer.Sql
                         "where id = @id;";
                     getNoteCommand.Parameters.AddWithValue("@id", id);
 
-                    var reader = getNoteCommand.ExecuteReader();
-                    if (!reader.Read())
+                    var reader = await getNoteCommand.ExecuteReaderAsync();
+                    if (!await reader.ReadAsync())
                     {
                         return resultNote;
                     }
@@ -170,9 +170,9 @@ namespace NoteKeeper.DataLayer.Sql
                         "join NoteTags on NoteTags.note_id = @id";
                     getTagsComand.Parameters.AddWithValue("@id", id);
 
-                    var reader = getTagsComand.ExecuteReader();
+                    var reader = await getTagsComand.ExecuteReaderAsync();
 
-                    while (reader.Read())
+                    while (await reader.ReadAsync())
                     {
                         tagNames.Add(reader["name"].ToString());
                     }
@@ -188,9 +188,9 @@ namespace NoteKeeper.DataLayer.Sql
                         "join SharedNotes on note_id = @id and user_id = id";
                     getPartnersCommend.Parameters.AddWithValue("@id", id);
 
-                    var reader = getPartnersCommend.ExecuteReader();
+                    var reader = await getPartnersCommend.ExecuteReaderAsync();
 
-                    while (reader.Read())
+                    while (await reader.ReadAsync())
                     {
                         partners.Add(new User()
                         {
@@ -208,13 +208,13 @@ namespace NoteKeeper.DataLayer.Sql
             }
         }
 
-        public IEnumerable<Note> GetByOwner(Guid ownerId)
+        public async Task<IEnumerable<Note>> GetByOwnerAsync(Guid ownerId)
         {
             List<Note> result = null;
 
             using (var connection = new SqlConnection(_connectionString))
             {
-                connection.Open();
+                await connection.OpenAsync();
                 using (var command = connection.CreateCommand())
                 {
                     command.CommandText =
@@ -222,10 +222,10 @@ namespace NoteKeeper.DataLayer.Sql
                         "where user_id = @Id";
                     command.Parameters.AddWithValue("@Id", ownerId);
 
-                    var reader = command.ExecuteReader();
+                    var reader = await command.ExecuteReaderAsync();
                     result = new List<Note>();
 
-                    while (reader.Read())
+                    while (await reader.ReadAsync())
                     {
                         var currentNote = new Note()
                         {
@@ -250,10 +250,10 @@ namespace NoteKeeper.DataLayer.Sql
                             "select name from Tags " +
                             "join NoteTags on note_id = @id and tag_id=id;";
                         tagCommand.Parameters.AddWithValue("@id", note.Id.ToString());
-                        var tagReader = tagCommand.ExecuteReader();
+                        var tagReader = await tagCommand.ExecuteReaderAsync();
 
                         var tagNames = new List<string>();
-                        while (tagReader.Read())
+                        while (await tagReader.ReadAsync())
                         {
                             tagNames.Add(tagReader["name"].ToString());
                         }
@@ -268,9 +268,9 @@ namespace NoteKeeper.DataLayer.Sql
                             "join SharedNotes on note_id = @id and user_id = id";
                         getPartnersCommend.Parameters.AddWithValue("@id", note.Id);
 
-                        var reader = getPartnersCommend.ExecuteReader();
+                        var reader = await getPartnersCommend.ExecuteReaderAsync();
                         var partners = new List<User>();
-                        while (reader.Read())
+                        while (await reader.ReadAsync())
                         {
                             partners.Add(new User()
                             {
@@ -290,13 +290,13 @@ namespace NoteKeeper.DataLayer.Sql
             }
         }
 
-        public IEnumerable<SharedNote> GetByPartner(Guid partnerId)
+        public async Task<IEnumerable<SharedNote>> GetByPartnerAsync(Guid partnerId)
         {
             List<SharedNote> result = null;
 
             using (var connection = new SqlConnection(_connectionString))
             {
-                connection.Open();
+                await connection.OpenAsync();
                 using (var command = connection.CreateCommand())
                 {
                     command.CommandText =
@@ -305,10 +305,10 @@ namespace NoteKeeper.DataLayer.Sql
                         "join SharedNotes on SharedNotes.user_id = @Id and SharedNotes.note_id = Notes.id";
                     command.Parameters.AddWithValue("@Id", partnerId);
 
-                    var reader = command.ExecuteReader();
+                    var reader = await command.ExecuteReaderAsync();
                     result = new List<SharedNote>();
 
-                    while (reader.Read())
+                    while (await reader.ReadAsync())
                     {
                         var currentNote = new SharedNote()
                         {
@@ -334,14 +334,14 @@ namespace NoteKeeper.DataLayer.Sql
             }
         }
 
-        public IEnumerable<Note> GetByTag(Guid tagId)
+        public async Task<IEnumerable<Note>> GetByTagAsync(Guid tagId)
         {
             List<Note> result = null;
             var tagNamesList = new List<List<String>>();
 
             using (var connection = new SqlConnection(_connectionString))
             {
-                connection.Open();
+                await connection.OpenAsync();
                 using (var command = connection.CreateCommand())
                 {
                     command.CommandText =
@@ -349,10 +349,10 @@ namespace NoteKeeper.DataLayer.Sql
                         "join NotesTag on id = note_id and tag_id = @Id";
                     command.Parameters.AddWithValue("@Id", tagId);
 
-                    var reader = command.ExecuteReader();
+                    var reader = await command.ExecuteReaderAsync();
                     result = new List<Note>();
 
-                    while (reader.Read())
+                    while (await reader.ReadAsync())
                     {
                         var tagNames = new List<String>();
                         tagNamesList.Add(tagNames);
@@ -381,9 +381,9 @@ namespace NoteKeeper.DataLayer.Sql
                             "select name from Tags " +
                             "join NoteTags on note_id = @id and tag_id=id;";
                         tagCommand.Parameters.AddWithValue("@id", result[i].Id.ToString());
-                        var tagReader = tagCommand.ExecuteReader();
+                        var tagReader = await tagCommand.ExecuteReaderAsync();
 
-                        while (tagReader.Read())
+                        while (await tagReader.ReadAsync())
                         {
                             tagNamesList[i].Add(tagReader["name"].ToString());
                         }
@@ -396,11 +396,12 @@ namespace NoteKeeper.DataLayer.Sql
             }
         }
 
-        public void ShareTo(Guid noteId, Guid partnerId)
+        public async Task ShareToAsync(Guid noteId, Guid partnerId)
         {
             using (var connection = new SqlConnection(_connectionString))
             {
-                connection.Open();
+                await connection.OpenAsync();
+                //Проверка того, что данный пользователь уже имеет доступ к заметке
                 using (var command = connection.CreateCommand())
                 {
                     command.CommandText =
@@ -409,7 +410,7 @@ namespace NoteKeeper.DataLayer.Sql
                     command.Parameters.AddWithValue("@NoteId", noteId);
                     command.Parameters.AddWithValue("@PartnerId", partnerId);
 
-                    using (var reader = command.ExecuteReader())
+                    using (var reader = await command.ExecuteReaderAsync())
                     {
                         if (reader.HasRows)
                         {
@@ -417,7 +418,7 @@ namespace NoteKeeper.DataLayer.Sql
                         }
                     }
                 }
-
+                //Проверка целостности
                 using (var command = connection.CreateCommand())
                 {
                     command.CommandText =
@@ -425,7 +426,7 @@ namespace NoteKeeper.DataLayer.Sql
                         "where id = @PartnerId";
                     command.Parameters.AddWithValue("@PartnerId", partnerId);
 
-                    using (var reader = command.ExecuteReader())
+                    using (var reader = await command.ExecuteReaderAsync())
                     {
                         if (!reader.HasRows)
                         {
@@ -440,7 +441,7 @@ namespace NoteKeeper.DataLayer.Sql
                         }
                     }
                 }
-
+                //Проверка целостности
                 using (var command = connection.CreateCommand())
                 {
                     command.CommandText =
@@ -448,7 +449,7 @@ namespace NoteKeeper.DataLayer.Sql
                         "where id = @NoteId";
                     command.Parameters.AddWithValue("@NoteId", noteId);
 
-                    using (var reader = command.ExecuteReader())
+                    using (var reader = await command.ExecuteReaderAsync())
                     {
                         if (!reader.HasRows)
                         {
@@ -472,18 +473,18 @@ namespace NoteKeeper.DataLayer.Sql
                     command.Parameters.AddWithValue("@userId", partnerId);
                     command.Parameters.AddWithValue("@noteId", noteId);
 
-                    command.ExecuteNonQuery();
+                    await command.ExecuteNonQueryAsync();
 
                 }
             }
         }
 
-        public void AddTag(Guid noteId, Guid tagId)
+        public async Task AddTagAsync(Guid noteId, Guid tagId)
         {
             using (var connection = new SqlConnection(_connectionString))
             {
-                connection.Open();
-
+                await connection.OpenAsync();
+                //Проверка того, что данная заметка уже помечена таким тегом
                 using (var command = connection.CreateCommand())
                 {
                     command.CommandText =
@@ -492,7 +493,7 @@ namespace NoteKeeper.DataLayer.Sql
                     command.Parameters.AddWithValue("@NoteId", noteId);
                     command.Parameters.AddWithValue("@TagId", tagId);
 
-                    using (var reader = command.ExecuteReader())
+                    using (var reader = await command.ExecuteReaderAsync())
                     {
                         if (reader.HasRows)
                         {
@@ -500,7 +501,7 @@ namespace NoteKeeper.DataLayer.Sql
                         }
                     }
                 }
-
+                //Проверка целостности
                 using (var command = connection.CreateCommand())
                 {
                     command.CommandText =
@@ -508,7 +509,7 @@ namespace NoteKeeper.DataLayer.Sql
                         "where id = @TagId";
                     command.Parameters.AddWithValue("@TagId", tagId);
 
-                    using (var reader = command.ExecuteReader())
+                    using (var reader = await command.ExecuteReaderAsync())
                     {
                         if (!reader.HasRows)
                         {
@@ -531,7 +532,7 @@ namespace NoteKeeper.DataLayer.Sql
                         "where id = @NoteId";
                     command.Parameters.AddWithValue("@NoteId", noteId);
 
-                    using (var reader = command.ExecuteReader())
+                    using (var reader = await command.ExecuteReaderAsync())
                     {
                         if (!reader.HasRows)
                         {
@@ -555,17 +556,17 @@ namespace NoteKeeper.DataLayer.Sql
                     command.Parameters.AddWithValue("@noteId", noteId);
                     command.Parameters.AddWithValue("@tagId", tagId);
 
-                    command.ExecuteNonQuery();
+                    await command.ExecuteNonQueryAsync();
 
                 }
             }
         }
 
-        public void RemoveAccess(Guid noteId, Guid partnerId)
+        public async Task RemoveAccessAsync(Guid noteId, Guid partnerId)
         {
             using (var connection = new SqlConnection(_connectionString))
             {
-                connection.Open();
+                await connection.OpenAsync();
                 using (var command = connection.CreateCommand())
                 {
                     command.CommandText =
@@ -575,16 +576,16 @@ namespace NoteKeeper.DataLayer.Sql
                     command.Parameters.AddWithValue("@userId", partnerId);
                     command.Parameters.AddWithValue("@noteId", noteId);
 
-                    command.ExecuteNonQuery();
+                    await command.ExecuteNonQueryAsync();
                 }
             }
         }
 
-        public void RemoveTag(Guid noteId, Guid tagId)
+        public async Task RemoveTagAsync(Guid noteId, Guid tagId)
         {
             using (var connection = new SqlConnection(_connectionString))
             {
-                connection.Open();
+                await connection.OpenAsync();
                 using (var command = connection.CreateCommand())
                 {
                     command.CommandText =
@@ -594,7 +595,7 @@ namespace NoteKeeper.DataLayer.Sql
                     command.Parameters.AddWithValue("@noteId", noteId);
                     command.Parameters.AddWithValue("@tagId", tagId);
 
-                    command.ExecuteNonQuery();
+                    await command.ExecuteNonQueryAsync();
 
                 }
             }

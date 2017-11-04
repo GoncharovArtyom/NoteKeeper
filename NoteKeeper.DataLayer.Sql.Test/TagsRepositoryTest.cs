@@ -3,6 +3,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 using NoteKeeper.Model;
 using System.Collections.Generic;
 using System.Data.SqlClient;
+using System.Threading.Tasks;
 
 namespace NoteKeeper.DataLayer.Sql.Test
 {
@@ -16,7 +17,7 @@ namespace NoteKeeper.DataLayer.Sql.Test
         private static ITagsRepository _repository;
 
         [ClassInitialize]
-        public static void InitializeData(TestContext context)
+        public static async Task InitializeData(TestContext context)
         {
             _user = new User()
             {
@@ -24,7 +25,7 @@ namespace NoteKeeper.DataLayer.Sql.Test
                 Email = (Guid.NewGuid()).ToString()
             };
             var userRepository = new UsersRepository(_connectionString);
-            _user = userRepository.Create(_user);
+            _user = await userRepository.CreateAsync(_user);
 
             _note = new Note()
             {
@@ -35,13 +36,13 @@ namespace NoteKeeper.DataLayer.Sql.Test
                 LastUpdateDate = new DateTime()
             };
             var notesRepository = new NotesRepository(_connectionString);
-            notesRepository.Create(_note);
+            await notesRepository.CreateAsync(_note);
 
             _repository = new TagsRepository(_connectionString);
         }
 
         [TestMethod]
-        public void CreateTagTest()
+        public async Task CreateTagTest()
         {
             var tag = new Tag()
             {
@@ -50,11 +51,11 @@ namespace NoteKeeper.DataLayer.Sql.Test
             };
             _tagsToDelete.Add(tag);
 
-            _repository.Create(tag);
+            await _repository.CreateAsync(tag);
 
             using (var connection = new SqlConnection(_connectionString))
             {
-                connection.Open();
+                await connection.OpenAsync();
                 using (var command = connection.CreateCommand())
                 {
                     command.CommandText =
@@ -62,16 +63,16 @@ namespace NoteKeeper.DataLayer.Sql.Test
                         "where id = @Id;";
                     command.Parameters.AddWithValue("@Id", tag.Id);
 
-                    var reader = command.ExecuteReader();
+                    var reader = await command.ExecuteReaderAsync();
 
-                    Assert.IsTrue(reader.Read());
+                    Assert.IsTrue(reader.HasRows);
                 }
             }
 
         }
 
         [TestMethod]
-        public void DeleteTagTest()
+        public async Task DeleteTagTest()
         {
             //arrange
             var tag = new Tag()
@@ -79,15 +80,15 @@ namespace NoteKeeper.DataLayer.Sql.Test
                 OwnerId = _user.Id,
                 Name = "TestTag"
             };
-            tag = _repository.Create(tag);
+            tag = await _repository.CreateAsync(tag);
 
             //act
-            _repository.Delete(tag.Id);
+            await _repository.DeleteAsync(tag.Id);
 
             //assert
             using (var connection = new SqlConnection(_connectionString))
             {
-                connection.Open();
+                await connection.OpenAsync();
                 using (var command = connection.CreateCommand())
                 {
                     command.CommandText =
@@ -95,15 +96,15 @@ namespace NoteKeeper.DataLayer.Sql.Test
                         "where id = @Id;";
                     command.Parameters.AddWithValue("@Id", tag.Id);
 
-                    var reader = command.ExecuteReader();
+                    var reader = await command.ExecuteReaderAsync();
 
-                    Assert.IsFalse(reader.Read());
+                    Assert.IsFalse(reader.HasRows);
                 }
             }
         }
 
         [TestMethod]
-        public void GetTagTest()
+        public async Task GetTagTest()
         {
             var tag = new Tag()
             {
@@ -112,15 +113,15 @@ namespace NoteKeeper.DataLayer.Sql.Test
             };
             _tagsToDelete.Add(tag);
 
-            tag = _repository.Create(tag);
-            var newTag = _repository.Get(tag.Id);
+            tag = await _repository.CreateAsync(tag);
+            var newTag = await _repository.GetAsync(tag.Id);
 
             Assert.IsNotNull(newTag);
             Assert.AreEqual(tag.Id, newTag.Id);
         }
 
         [TestMethod]
-        public void ChangeTagNameTest()
+        public async Task ChangeTagNameTest()
         {
             //arrange
             var tag = new Tag()
@@ -133,16 +134,16 @@ namespace NoteKeeper.DataLayer.Sql.Test
             string newName = "Test2";
 
             //act
-            tag = _repository.Create(tag);
-            _repository.ChangeName(tag.Id, newName);
+            tag = await _repository.CreateAsync(tag);
+            await _repository.ChangeNameAsync(tag.Id, newName);
 
             //assert
-            var newTag = _repository.Get(tag.Id);
+            var newTag = await _repository.GetAsync(tag.Id);
             Assert.AreEqual(newTag.Name, newName);
         }
 
         [TestMethod]
-        public void GetTagsByOwnerTest()
+        public async Task GetTagsByOwnerTest()
         {
             var tag1 = new Tag()
             {
@@ -156,10 +157,10 @@ namespace NoteKeeper.DataLayer.Sql.Test
             };
             _tagsToDelete.Add(tag1);
             _tagsToDelete.Add(tag2);
-            tag1 = _repository.Create(tag1);
-            tag2 = _repository.Create(tag2);
+            tag1 = await _repository.CreateAsync(tag1);
+            tag2 = await _repository.CreateAsync(tag2);
 
-            IEnumerable<Tag> result = _repository.GetByOwner(_user.Id);
+            IEnumerable<Tag> result = await _repository.GetByOwnerAsync(_user.Id);
 
             List<Tag> resultList = new List<Tag>(result);
             Assert.AreEqual(resultList.Count, 2);
@@ -170,7 +171,7 @@ namespace NoteKeeper.DataLayer.Sql.Test
         }
 
         [TestMethod]
-        public void GetTagsByNoteAndAddNoteTest()
+        public async Task GetTagsByNoteAndAddNoteTest()
         {
             var tag1 = new Tag()
             {
@@ -184,8 +185,8 @@ namespace NoteKeeper.DataLayer.Sql.Test
             };
             _tagsToDelete.Add(tag1);
             _tagsToDelete.Add(tag2);
-            tag1 = _repository.Create(tag1);
-            tag2 = _repository.Create(tag2);
+            tag1 = await _repository.CreateAsync(tag1);
+            tag2 = await _repository.CreateAsync(tag2);
             var note = new Note()
             {
                 OwnerId = _user.Id,
@@ -195,11 +196,11 @@ namespace NoteKeeper.DataLayer.Sql.Test
                 LastUpdateDate = new DateTime()
             };
             var noteRepository = new NotesRepository(_connectionString);
-            noteRepository.Create(note);
-            noteRepository.AddTag(note.Id, tag1.Id);
-            noteRepository.AddTag(note.Id, tag2.Id);
+            await noteRepository.CreateAsync(note);
+            await noteRepository.AddTagAsync(note.Id, tag1.Id);
+            await noteRepository.AddTagAsync(note.Id, tag2.Id);
 
-            IEnumerable<Tag> result = _repository.GetByNote(note.Id);
+            IEnumerable<Tag> result = await _repository.GetByNoteAsync(note.Id);
 
             List<Tag> resultList = new List<Tag>(result);
             Assert.AreEqual(resultList.Count, 2);
@@ -207,26 +208,26 @@ namespace NoteKeeper.DataLayer.Sql.Test
             {
                 Assert.IsTrue(recievedTag.Id.Equals(tag1.Id) || recievedTag.Id.Equals(tag2.Id));
             }
-            noteRepository.Delete(note.Id);
+            await noteRepository.DeleteAsync(note.Id);
         }
 
         [TestCleanup]
-        public void CleanupData()
+        public async Task CleanupData()
         {
             foreach (var tag in _tagsToDelete)
             {
-                _repository.Delete(tag.Id);
+                await _repository.DeleteAsync(tag.Id);
             }
         }
 
         [ClassCleanup]
-        public static void CleanupClassData()
+        public static async Task CleanupClassData()
         {
             var userRepository = new UsersRepository(_connectionString);
-            userRepository.Delete(_user.Id);
+            await userRepository.DeleteAsync(_user.Id);
 
             var notesRepository = new NotesRepository(_connectionString);
-            notesRepository.Delete(_note.Id);
+            await notesRepository.DeleteAsync(_note.Id);
         }
     }
 }

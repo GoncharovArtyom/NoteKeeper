@@ -9,6 +9,7 @@ using NoteKeeper.DataLayer.Sql;
 using NoteKeeper.Model;
 using NoteKeeper.Api.Filters;
 using NoteKeeper.Logger;
+using System.Threading.Tasks;
 
 namespace NoteKeeper.Api.Controllers
 {
@@ -34,11 +35,26 @@ namespace NoteKeeper.Api.Controllers
         [HttpGet]
         [Route("api/users/{id}")]
         [HandleExceptionFilter]
-        public User Get(Guid id)
+        public async Task<User> Get(Guid id)
         {
             Log.Instance.Info("Получение пользователя: Id = {0}", id);
 
-            return _usersRepository.Get(id);
+            return await _usersRepository.GetAsync(id);
+        }
+
+        /// <summary>
+        /// Получение пользователя по Email
+        /// </summary>
+        /// <param name="email">Email пользователя</param>
+        /// <returns>Пользователь</returns>
+        [HttpGet]
+        [Route("api/users/have-email")]
+        [HandleExceptionFilter]
+        public async Task<User> Get([FromUri] string email)
+        {
+            Log.Instance.Info("Получение пользователя: Email = {0}", email);
+
+            return await _usersRepository.GetAsync(email);
         }
 
         /// <summary>
@@ -50,11 +66,11 @@ namespace NoteKeeper.Api.Controllers
         [Route("api/users")]
         [ValidateModelFilter]
         [HandleExceptionFilter]
-        public User CreateUser([FromBody] User newUser)
+        public async Task<User> CreateUser([FromBody] User newUser)
         {
             Log.Instance.Info("Создание пользователя: Email = {0}", newUser.Email);
 
-            return _usersRepository.Create(newUser);
+            return await _usersRepository.CreateAsync(newUser);
         }
 
         /// <summary>
@@ -64,11 +80,11 @@ namespace NoteKeeper.Api.Controllers
         [HttpDelete]
         [Route("api/users/{id}")]
         [HandleExceptionFilter]
-        public void DeleteUser(Guid id)
+        public async Task DeleteUser(Guid id)
         {
             Log.Instance.Info("Удаление пользователя: Id = {0}", id);
 
-            _usersRepository.Delete(id);
+            await _usersRepository.DeleteAsync(id);
         }
 
         /// <summary>
@@ -79,11 +95,11 @@ namespace NoteKeeper.Api.Controllers
         [HttpPut]
         [Route("api/users/{id}/name")]
         [HandleExceptionFilter]
-        public void ChangeUserName(Guid id, [FromBody] string newName)
+        public async Task ChangeUserName(Guid id, [FromBody] string newName)
         {
             Log.Instance.Info("Изменение имени пользователя: Id = {0}", id);
 
-            _usersRepository.ChangeName(id, newName);
+            await _usersRepository.ChangeNameAsync(id, newName);
         }
 
         /// <summary>
@@ -94,11 +110,11 @@ namespace NoteKeeper.Api.Controllers
         [HttpGet]
         [Route("api/users/{id}/notes")]
         [HandleExceptionFilter]
-        public IEnumerable<Note> GetUserNotes(Guid id)
+        public async Task<IEnumerable<Note>> GetUserNotes(Guid id)
         {
             Log.Instance.Info("Получение заметок пользователя: Id = {0}", id);
 
-            return _notesRepository.GetByOwner(id);
+            return await _notesRepository.GetByOwnerAsync(id);
         }
 
         /// <summary>
@@ -109,11 +125,11 @@ namespace NoteKeeper.Api.Controllers
         [HttpGet]
         [Route("api/users/{id}/tags")]
         [HandleExceptionFilter]
-        public IEnumerable<Tag> GetUserTags(Guid id)
+        public async Task<IEnumerable<Tag>> GetUserTags(Guid id)
         {
             Log.Instance.Info("Получение тегов пользователя: Id = {0}", id);
 
-            return _tagsRepository.GetByOwner(id);
+            return await _tagsRepository.GetByOwnerAsync(id);
         }
 
         /// <summary>
@@ -124,11 +140,11 @@ namespace NoteKeeper.Api.Controllers
         [HttpGet]
         [Route("api/users/{id}/shared-notes")]
         [HandleExceptionFilter]
-        public IEnumerable<SharedNote> GetNotesSharedToUser(Guid userId)
+        public async Task<IEnumerable<SharedNote>> GetNotesSharedToUser(Guid userId)
         {
             Log.Instance.Info("Получение заметок, которыми поделились с пользователем: Id = {0}", userId);
 
-            return _notesRepository.GetByPartner(userId);
+            return await _notesRepository.GetByPartnerAsync(userId);
         }
     }
 }

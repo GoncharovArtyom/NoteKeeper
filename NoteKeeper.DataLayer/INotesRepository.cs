@@ -9,17 +9,17 @@ namespace NoteKeeper.DataLayer
 {
     public interface INotesRepository
     {
-        Note Get(Guid id);
-        Note Create(Note newNote);
-        Note ChangeHeading(Guid noteId, String newHeading);
-        Note ChangeText(Guid noteId, String newText);
-        IEnumerable<Note> GetByOwner(Guid ownerId);
-        IEnumerable<SharedNote> GetByPartner(Guid partnerId);
-        IEnumerable<Note> GetByTag(Guid tagId);
-        void ShareTo(Guid noteId, Guid partnerId);
-        void Delete(Guid noteId);
-        void AddTag(Guid noteId, Guid tagId);
-        void RemoveAccess(Guid noteId, Guid partnerId);
-        void RemoveTag(Guid noteId, Guid tagId);
+        Task<Note> GetAsync(Guid id);
+        Task<Note> CreateAsync(Note newNote);
+        Task<Note> ChangeHeadingAsync(Guid noteId, String newHeading);
+        Task<Note> ChangeTextAsync(Guid noteId, String newText);
+        Task<IEnumerable<Note>> GetByOwnerAsync(Guid ownerId);
+        Task<IEnumerable<SharedNote>> GetByPartnerAsync(Guid partnerId);
+        Task<IEnumerable<Note>> GetByTagAsync(Guid tagId);
+        Task ShareToAsync(Guid noteId, Guid partnerId);
+        Task DeleteAsync(Guid noteId);
+        Task AddTagAsync(Guid noteId, Guid tagId);
+        Task RemoveAccessAsync(Guid noteId, Guid partnerId);
+        Task RemoveTagAsync(Guid noteId, Guid tagId);
     }
 }

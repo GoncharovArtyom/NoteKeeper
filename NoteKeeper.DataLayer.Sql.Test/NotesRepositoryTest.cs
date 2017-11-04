@@ -4,6 +4,7 @@ using NoteKeeper.Model;
 using System.Collections.Generic;
 using NoteKeeper.DataLayer.Sql;
 using System.Data.SqlClient;
+using System.Threading.Tasks;
 
 namespace NoteKeeper.DataLayer.Sql.Test
 {
@@ -16,7 +17,7 @@ namespace NoteKeeper.DataLayer.Sql.Test
         private static INotesRepository _repository;
 
         [ClassInitialize]
-        public static void CreateUser(TestContext context)
+        public static async Task CreateUser(TestContext context)
         {
             _user = new User()
             {
@@ -25,13 +26,13 @@ namespace NoteKeeper.DataLayer.Sql.Test
             };
 
             var userRepository = new UsersRepository(_connectionString);
-            _user = userRepository.Create(_user);
+            _user = await userRepository.CreateAsync(_user);
 
             _repository = new NotesRepository(_connectionString);
         }
 
         [TestMethod]
-        public void CreateNoteTest()
+        public async Task CreateNoteTest()
         {
             //arrange
             var note = new Note()
@@ -46,12 +47,12 @@ namespace NoteKeeper.DataLayer.Sql.Test
             _notesToDelete.Add(note);
 
             //act
-            note = _repository.Create(note);
+            note = await _repository.CreateAsync(note);
 
             //assert
             using (var connection = new SqlConnection(_connectionString))
             {
-                connection.Open();
+                await connection.OpenAsync();
                 using (var command = connection.CreateCommand())
                 {
                     command.CommandText =
@@ -59,16 +60,16 @@ namespace NoteKeeper.DataLayer.Sql.Test
                         "where id = @Id;";
                     command.Parameters.AddWithValue("@Id", note.Id);
 
-                    var reader = command.ExecuteReader();
+                    var reader = await command.ExecuteReaderAsync();
 
-                    Assert.IsTrue(reader.Read());
+                    Assert.IsTrue(reader.HasRows);
                 }
             }
 
         }
 
         [TestMethod]
-        public void DeleteNoteTest()
+        public async Task DeleteNoteTest()
         {
             //arrange
             var note = new Note()
@@ -80,15 +81,15 @@ namespace NoteKeeper.DataLayer.Sql.Test
                 LastUpdateDate = new DateTime()
             };
 
-            note = _repository.Create(note);
+            note = await _repository.CreateAsync(note);
 
             //act
-            _repository.Delete(note.Id);
+            await _repository.DeleteAsync(note.Id);
 
             //assert
             using (var connection = new SqlConnection(_connectionString))
             {
-                connection.Open();
+                await connection.OpenAsync();
                 using (var command = connection.CreateCommand())
                 {
                     command.CommandText =
@@ -96,15 +97,15 @@ namespace NoteKeeper.DataLayer.Sql.Test
                         "where id = @Id;";
                     command.Parameters.AddWithValue("@Id", note.Id);
 
-                    var reader = command.ExecuteReader();
+                    var reader = await command.ExecuteReaderAsync();
 
-                    Assert.IsFalse(reader.Read());
+                    Assert.IsFalse(reader.HasRows);
                 }
             }
         }
 
         [TestMethod]
-        public void GetNoteTest()
+        public async Task GetNoteTest()
         {
             var note = new Note()
             {
@@ -116,15 +117,15 @@ namespace NoteKeeper.DataLayer.Sql.Test
             };
             _notesToDelete.Add(note);
 
-            note = _repository.Create(note);
-            var newNote = _repository.Get(note.Id);
+            note = await _repository.CreateAsync(note);
+            var newNote = await _repository.GetAsync(note.Id);
 
             Assert.IsNotNull(newNote);
 
         }
 
         [TestMethod]
-        public void ChangeNoteHeadingTest()
+        public async Task ChangeNoteHeadingTest()
         {
             //arrange
             var note = new Note()
@@ -139,17 +140,17 @@ namespace NoteKeeper.DataLayer.Sql.Test
             string newHeading = "Test2";
 
             //act
-            note = _repository.Create(note);
-            note = _repository.ChangeHeading(note.Id, newHeading);
+            note = await _repository.CreateAsync(note);
+            note = await _repository.ChangeHeadingAsync(note.Id, newHeading);
 
             //assert
-            var newNote = _repository.Get(note.Id);
+            var newNote = await _repository.GetAsync(note.Id);
             Assert.AreEqual(note.Heading, newNote.Heading, newHeading);
             Assert.AreEqual(note.LastUpdateDate, newNote.LastUpdateDate);
         }
 
         [TestMethod]
-        public void GetNoteByOwnerTest()
+        public async Task GetNoteByOwnerTest()
         {
             var note1 = new Note()
             {
@@ -170,9 +171,9 @@ namespace NoteKeeper.DataLayer.Sql.Test
             _notesToDelete.Add(note1);
             _notesToDelete.Add(note2);
 
-            note1 = _repository.Create(note1);
-            note2 = _repository.Create(note2);
-            IEnumerable<Note> result = _repository.GetByOwner(_user.Id);
+            note1 = await _repository.CreateAsync(note1);
+            note2 = await _repository.CreateAsync(note2);
+            IEnumerable<Note> result = await _repository.GetByOwnerAsync(_user.Id);
 
             Assert.IsNotNull(result);
             List<Note> resList = new List<Note>(result);
@@ -184,7 +185,7 @@ namespace NoteKeeper.DataLayer.Sql.Test
         }
 
         [TestMethod]
-        public void ShareTest1()
+        public async Task ShareTest1()
         {
             //arrange
             var note = new Note()
@@ -195,7 +196,7 @@ namespace NoteKeeper.DataLayer.Sql.Test
                 CreationDate = new DateTime(),
                 LastUpdateDate = new DateTime()
             };
-            _repository.Create(note);
+            await _repository.CreateAsync(note);
             _notesToDelete.Add(note);
             var anotherUser = new User()
             {
@@ -204,22 +205,22 @@ namespace NoteKeeper.DataLayer.Sql.Test
                 Email = Guid.NewGuid().ToString()
             };
             var userRepository = new UsersRepository(_connectionString);
-            userRepository.Create(anotherUser);
+            await userRepository.CreateAsync(anotherUser);
 
             //act
-            _repository.ShareTo(note.Id, anotherUser.Id);
+            await _repository.ShareToAsync(note.Id, anotherUser.Id);
 
             //assert
-            IEnumerable<SharedNote> result = _repository.GetByPartner(anotherUser.Id);
+            IEnumerable<SharedNote> result = await _repository.GetByPartnerAsync(anotherUser.Id);
             List<SharedNote> resList = new List<SharedNote>(result);
             Assert.AreEqual(resList.Count, 1);
             Assert.AreEqual(resList[0].Id, note.Id);
 
-            userRepository.Delete(anotherUser.Id);
+            await userRepository.DeleteAsync(anotherUser.Id);
         }
 
         [TestMethod]
-        public void ShareTest2()
+        public async Task ShareTest2()
         {
             //arrange
             var note = new Note()
@@ -230,7 +231,7 @@ namespace NoteKeeper.DataLayer.Sql.Test
                 CreationDate = new DateTime(),
                 LastUpdateDate = new DateTime()
             };
-            _repository.Create(note);
+            await _repository.CreateAsync(note);
             _notesToDelete.Add(note);
             var anotherUser = new User()
             {
@@ -239,22 +240,22 @@ namespace NoteKeeper.DataLayer.Sql.Test
                 Email = Guid.NewGuid().ToString()
             };
             var userRepository = new UsersRepository(_connectionString);
-            userRepository.Create(anotherUser);
+            await userRepository.CreateAsync(anotherUser);
 
             //act
-            _repository.ShareTo(note.Id, anotherUser.Id);
-            var resNote = _repository.Get(note.Id);
+            await _repository.ShareToAsync(note.Id, anotherUser.Id);
+            var resNote = await _repository.GetAsync(note.Id);
 
             //assert
             List<User> resList = new List<User>(resNote.Partners);
             Assert.AreEqual(resList.Count, 1);
             Assert.AreEqual(resList[0].Id, anotherUser.Id);
 
-            userRepository.Delete(anotherUser.Id);
+            await userRepository.DeleteAsync(anotherUser.Id);
         }
 
         [TestMethod]
-        public void ShareTest3()
+        public async Task ShareTest3()
         {
             //arrange
             var note = new Note()
@@ -265,7 +266,7 @@ namespace NoteKeeper.DataLayer.Sql.Test
                 CreationDate = new DateTime(),
                 LastUpdateDate = new DateTime()
             };
-            _repository.Create(note);
+            await _repository.CreateAsync(note);
             _notesToDelete.Add(note);
             var anotherUser = new User()
             {
@@ -274,11 +275,11 @@ namespace NoteKeeper.DataLayer.Sql.Test
                 Email = Guid.NewGuid().ToString()
             };
             var userRepository = new UsersRepository(_connectionString);
-            userRepository.Create(anotherUser);
+            await userRepository.CreateAsync(anotherUser);
 
             //act
-            _repository.ShareTo(note.Id, anotherUser.Id);
-            var result = _repository.GetByOwner(_user.Id);
+            await _repository.ShareToAsync(note.Id, anotherUser.Id);
+            var result = await _repository.GetByOwnerAsync(_user.Id);
 
             //assert
             bool isPresent = false;
@@ -294,11 +295,11 @@ namespace NoteKeeper.DataLayer.Sql.Test
             }
             Assert.IsTrue(isPresent);
 
-            userRepository.Delete(anotherUser.Id);
+            await userRepository.DeleteAsync(anotherUser.Id);
         }
 
         [TestMethod]
-        public void GetByPartnerTest()
+        public async Task GetByPartnerTest()
         {
             //arrange
             var note1 = new Note()
@@ -317,8 +318,8 @@ namespace NoteKeeper.DataLayer.Sql.Test
                 CreationDate = new DateTime(),
                 LastUpdateDate = new DateTime()
             };
-            _repository.Create(note1);
-            _repository.Create(note2);
+            await _repository.CreateAsync(note1);
+            await _repository.CreateAsync(note2);
             _notesToDelete.Add(note1);
             _notesToDelete.Add(note2);
 
@@ -329,12 +330,12 @@ namespace NoteKeeper.DataLayer.Sql.Test
                 Email = Guid.NewGuid().ToString()
             };
             var userRepository = new UsersRepository(_connectionString);
-            userRepository.Create(anotherUser);
-            _repository.ShareTo(note1.Id, anotherUser.Id);
-            _repository.ShareTo(note2.Id, anotherUser.Id);
+            await userRepository.CreateAsync(anotherUser);
+            await _repository.ShareToAsync(note1.Id, anotherUser.Id);
+            await _repository.ShareToAsync(note2.Id, anotherUser.Id);
 
             //act
-            IEnumerable<SharedNote> result = _repository.GetByPartner(anotherUser.Id);
+            IEnumerable<SharedNote> result = await _repository.GetByPartnerAsync(anotherUser.Id);
 
             //assert
 
@@ -345,11 +346,11 @@ namespace NoteKeeper.DataLayer.Sql.Test
                 Assert.IsTrue(note.Id.Equals(note1.Id) || note.Id.Equals(note2.Id));
             }
 
-            userRepository.Delete(anotherUser.Id);
+            await userRepository.DeleteAsync(anotherUser.Id);
         }
 
         [TestMethod]
-        public void RemoveAccessTest()
+        public async Task RemoveAccessTest()
         {
             //arrange
             var note = new Note()
@@ -360,7 +361,7 @@ namespace NoteKeeper.DataLayer.Sql.Test
                 CreationDate = new DateTime(),
                 LastUpdateDate = new DateTime()
             };
-            _repository.Create(note);
+            await _repository.CreateAsync(note);
             _notesToDelete.Add(note);
             var anotherUser = new User()
             {
@@ -369,22 +370,22 @@ namespace NoteKeeper.DataLayer.Sql.Test
                 Email = Guid.NewGuid().ToString()
             };
             var userRepository = new UsersRepository(_connectionString);
-            userRepository.Create(anotherUser);
+            await userRepository.CreateAsync(anotherUser);
 
             //act
-            _repository.ShareTo(note.Id, anotherUser.Id);
-            _repository.RemoveAccess(note.Id, anotherUser.Id);
+            await _repository.ShareToAsync(note.Id, anotherUser.Id);
+            await _repository.RemoveAccessAsync(note.Id, anotherUser.Id);
 
             //assert
-            IEnumerable<SharedNote> result = _repository.GetByPartner(anotherUser.Id);
+            IEnumerable<SharedNote> result = await _repository.GetByPartnerAsync(anotherUser.Id);
             List<SharedNote> resList = new List<SharedNote>(result);
             Assert.AreEqual(resList.Count, 0);
 
-            userRepository.Delete(anotherUser.Id);
+            await userRepository.DeleteAsync(anotherUser.Id);
         } 
 
         [TestMethod]
-        public void RemoveTagTest()
+        public async Task RemoveTagTest()
         {
             //arrange
             var tag1 = new Tag()
@@ -398,8 +399,8 @@ namespace NoteKeeper.DataLayer.Sql.Test
                 Name = "Test2"
             };
             var tagsRepository = new TagsRepository(_connectionString);
-            tag1 = tagsRepository.Create(tag1);
-            tag2 = tagsRepository.Create(tag2);
+            tag1 = await tagsRepository.CreateAsync(tag1);
+            tag2 = await tagsRepository.CreateAsync(tag2);
             var note = new Note()
             {
                 OwnerId = _user.Id,
@@ -409,38 +410,38 @@ namespace NoteKeeper.DataLayer.Sql.Test
                 LastUpdateDate = new DateTime()
             };
             
-            _repository.Create(note);
-            _repository.AddTag(note.Id, tag1.Id);
-            _repository.AddTag(note.Id, tag2.Id);
+            await _repository.CreateAsync(note);
+            await _repository.AddTagAsync(note.Id, tag1.Id);
+            await _repository.AddTagAsync(note.Id, tag2.Id);
 
             _notesToDelete.Add(note);
 
             //act
-            _repository.RemoveTag(note.Id, tag1.Id);
-            IEnumerable<Tag> result = tagsRepository.GetByNote(note.Id);
+            await _repository.RemoveTagAsync(note.Id, tag1.Id);
+            IEnumerable<Tag> result = await tagsRepository.GetByNoteAsync(note.Id);
 
             List<Tag> resultList = new List<Tag>(result);
             Assert.AreEqual(resultList.Count, 1);
             Assert.AreEqual(resultList[0].Id, tag2.Id);
 
-            tagsRepository.Delete(tag1.Id);
-            tagsRepository.Delete(tag2.Id);
+            await tagsRepository.DeleteAsync(tag1.Id);
+            await tagsRepository.DeleteAsync(tag2.Id);
         }
 
         [TestCleanup]
-        public void CleanupData()
+        public async Task CleanupData()
         {
             foreach (var note in _notesToDelete)
             {
-                _repository.Delete(note.Id);
+                await _repository.DeleteAsync(note.Id);
             }
         }
 
         [ClassCleanup]
-        public static void DeleteUser()
+        public static async Task DeleteUser()
         {
             var userRepository = new UsersRepository(_connectionString);
-            userRepository.Delete(_user.Id);
+            await userRepository.DeleteAsync(_user.Id);
         }
     }
 }

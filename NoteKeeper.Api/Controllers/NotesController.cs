@@ -9,7 +9,7 @@ using System.Net.Http;
 using System.Web.Http;
 using NoteKeeper.Api.Filters;
 using NoteKeeper.Logger;
-
+using System.Threading.Tasks;
 
 namespace NoteKeeper.Api.Controllers
 {
@@ -36,11 +36,11 @@ namespace NoteKeeper.Api.Controllers
         [Route("api/notes")]
         [HandleExceptionFilter]
         [ValidateModelFilter]
-        public Note CreateNote(Note newNote)
+        public async Task<Note> CreateNote(Note newNote)
         {
             Log.Instance.Info("Создание заметки: OwnerId = {0}", newNote.OwnerId);
 
-            return _notesRepository.Create(newNote);
+            return await _notesRepository.CreateAsync(newNote);
         }
 
         /// <summary>
@@ -50,11 +50,11 @@ namespace NoteKeeper.Api.Controllers
         [HttpDelete]
         [Route("api/notes/{id}")]
         [HandleExceptionFilter]
-        public void DeleteNote(Guid id)
+        public async Task DeleteNote(Guid id)
         {
             Log.Instance.Info("Удаление заметки: Id = {0}", id);
 
-            _notesRepository.Delete(id);
+            await _notesRepository.DeleteAsync(id);
         }
 
         /// <summary>
@@ -66,27 +66,27 @@ namespace NoteKeeper.Api.Controllers
         [HttpPut]
         [Route("api/notes/{id}/heading")]
         [HandleExceptionFilter]
-        public Note ChangeNoteHeading(Guid id, [FromBody] string newHeading)
+        public async Task<Note> ChangeNoteHeading(Guid id, [FromBody] string newHeading)
         {
             Log.Instance.Info("Изменение названия заметки: Id = {0}", id);
 
-            return _notesRepository.ChangeHeading(id, newHeading);
+            return await _notesRepository.ChangeHeadingAsync(id, newHeading);
         }
 
         /// <summary>
         /// Изменение текста заметки 
         /// </summary>
         /// <param name="id">Идентификатор заметки</param>
-        /// <param name="newHeading">Новый текст</param>
+        /// <param name="newText">Новый текст</param>
         /// <returns>Измененная заметка</returns>
         [HttpPut]
         [Route("api/notes/{id}/text")]
         [HandleExceptionFilter]
-        public Note ChangeNoteText(Guid id, [FromBody] string newText)
+        public async Task<Note> ChangeNoteText(Guid id, [FromBody] string newText)
         {
             Log.Instance.Info("Изменение текста заметки: Id = {0}", id);
 
-            return _notesRepository.ChangeText(id, newText);
+            return await _notesRepository.ChangeTextAsync(id, newText);
         }
 
         /// <summary>
@@ -97,11 +97,11 @@ namespace NoteKeeper.Api.Controllers
         [HttpGet]
         [Route("api/notes/{id}/tags")]
         [HandleExceptionFilter]
-        public IEnumerable<Tag> GetNoteTags(Guid id)
+        public async Task<IEnumerable<Tag>> GetNoteTags(Guid id)
         {
             Log.Instance.Info("Получение всех тегов заметки: Id = {0}", id);
 
-            return _tagsRepository.GetByNote(id);
+            return await _tagsRepository.GetByNoteAsync(id);
         }
 
         /// <summary>
@@ -112,11 +112,11 @@ namespace NoteKeeper.Api.Controllers
         [HttpPost]
         [Route("api/notes/{note_id}/tags/{tag_id}")]
         [HandleExceptionFilter]
-        public void AddTagToNote(Guid note_id, Guid tag_id)
+        public async Task AddTagToNote(Guid note_id, Guid tag_id)
         {
             Log.Instance.Info("Добавление тега к заметке: NoteId = {0}, TagId = {1}", note_id, tag_id);
 
-            _notesRepository.AddTag(note_id, tag_id);
+            await _notesRepository.AddTagAsync(note_id, tag_id);
         }
 
         /// <summary>
@@ -127,11 +127,11 @@ namespace NoteKeeper.Api.Controllers
         [HttpDelete]
         [Route("api/notes/{note_id}/tags/{tag_id}")]
         [HandleExceptionFilter]
-        public void DeleteTagFromNote(Guid note_id, Guid tag_id)
+        public async Task DeleteTagFromNote(Guid note_id, Guid tag_id)
         {
             Log.Instance.Info("Удаление тега у заметки: NoteId = {0}, TagId = {1}", note_id, tag_id);
 
-            _notesRepository.RemoveTag(note_id, tag_id);
+            await _notesRepository.RemoveTagAsync(note_id, tag_id);
         }
 
         /// <summary>
@@ -141,11 +141,11 @@ namespace NoteKeeper.Api.Controllers
         [HttpGet]
         [Route("api/notes/{note_id}/shared-to-users")]
         [HandleExceptionFilter]
-        public IEnumerable<User> GetPartnersByNote(Guid note_id)
+        public async Task<IEnumerable<User>> GetPartnersByNote(Guid note_id)
         {
             Log.Instance.Info("Получение всех пользователей, которые имеют доступ к заметке: NoteId = {0}", note_id);
 
-            return _usersRepository.GetPartnersByNote(note_id);
+            return await _usersRepository.GetPartnersByNoteAsync(note_id);
         }
 
         /// <summary>
@@ -156,11 +156,11 @@ namespace NoteKeeper.Api.Controllers
         [HttpPost]
         [Route("api/notes/{note_id}/shared-to-users/{user_id}")]
         [HandleExceptionFilter]
-        public void ShareNoteToUser(Guid note_id, Guid user_id)
+        public async Task ShareNoteToUser(Guid note_id, Guid user_id)
         {
             Log.Instance.Info("Открытие пользователю доступа к заметке: NoteId = {0}, UserId = {1}", note_id, user_id);
 
-            _notesRepository.ShareTo(note_id, user_id);
+            await _notesRepository.ShareToAsync(note_id, user_id);
         }
 
         /// <summary>
@@ -171,11 +171,11 @@ namespace NoteKeeper.Api.Controllers
         [HttpDelete]
         [Route("api/notes/{note_id}/shared-to-users/{user_id}")]
         [HandleExceptionFilter]
-        public void RemoveAccessToNoteFromUser(Guid note_id, Guid user_id)
+        public async Task RemoveAccessToNoteFromUser(Guid note_id, Guid user_id)
         {
             Log.Instance.Info("Удаление доступа к заметке для пользователя: NoteId = {0}, UserId = {1}", note_id, user_id);
 
-            _notesRepository.RemoveAccess(note_id, user_id);
+            await _notesRepository.RemoveAccessAsync(note_id, user_id);
         }
     }
 }
