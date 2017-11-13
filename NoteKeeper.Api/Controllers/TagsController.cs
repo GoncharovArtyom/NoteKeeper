@@ -65,7 +65,7 @@ namespace NoteKeeper.Api.Controllers
         [HttpPut]
         [Route("api/tags/{id}/name")]
         [HandleExceptionFilter]
-        public async Task ChangeTagName(Guid id,[FromBody] string newName)
+        public async Task ChangeTagName(Guid id, [FromBody] string newName)
         {
             Log.Instance.Info("Изменение названия тега: Id = {0}", id);
 

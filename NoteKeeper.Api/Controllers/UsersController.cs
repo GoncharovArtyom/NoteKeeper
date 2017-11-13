@@ -140,11 +140,27 @@ namespace NoteKeeper.Api.Controllers
         [HttpGet]
         [Route("api/users/{id}/shared-notes")]
         [HandleExceptionFilter]
-        public async Task<IEnumerable<SharedNote>> GetNotesSharedToUser(Guid userId)
+        public async Task<IEnumerable<SharedNote>> GetNotesSharedToUser(Guid id)
         {
-            Log.Instance.Info("Получение заметок, которыми поделились с пользователем: Id = {0}", userId);
+            Log.Instance.Info("Получение заметок, которыми поделились с пользователем: Id = {0}", id);
 
-            return await _notesRepository.GetByPartnerAsync(userId);
+            return await _notesRepository.GetByPartnerAsync(id);
+        }
+
+        /// <summary>
+        /// Удаление доступа к заметке
+        /// </summary>
+        /// <param name="user_id"></param>
+        /// <param name="note_id"></param>
+        /// <returns></returns>
+        [HttpDelete]
+        [Route("api/users/{user_id}/shared-notes/{note_id}")]
+        [HandleExceptionFilter]
+        public async Task RemoveAcceessToNote(Guid user_id, Guid note_id)
+        {
+            Log.Instance.Info("Удаление доступа к заметке: UserId = {0}, NoteId = {1}", user_id, note_id);
+
+            await _notesRepository.RemoveAccessAsync(note_id, user_id);
         }
     }
 }

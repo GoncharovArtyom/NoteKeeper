@@ -97,6 +97,8 @@ namespace NoteKeeper.DataLayer.Sql
                         "insert into Notes values(@Id, @OwnerId, @Heading, @Text, @CreationDate, @LastUpdateDate);";
 
                     newNote.Id = Guid.NewGuid();
+                    newNote.Partners = new List<User>();
+                    newNote.TagNames = new List<string>();
 
                     command.Parameters.AddWithValue("@Id", newNote.Id);
                     command.Parameters.AddWithValue("@OwnerId", newNote.OwnerId);

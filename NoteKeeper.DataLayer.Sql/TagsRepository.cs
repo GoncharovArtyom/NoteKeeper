@@ -32,9 +32,35 @@ namespace NoteKeeper.DataLayer.Sql
                     NewValue = newName
                 };
             }
+
             using (var connection = new SqlConnection(_connectionString))
             {
                 await connection.OpenAsync();
+
+                using (var command = connection.CreateCommand())
+                {
+                    command.CommandText =
+                        "select * from Tags " +
+                        "where name = @Name and user_id in " +
+                            "(select distinct user_id from Tags " +
+                            "where id = @Id);";
+                    command.Parameters.AddWithValue("@Id", tagId);
+                    command.Parameters.AddWithValue("@Name", newName);
+
+                    using (var reader = await command.ExecuteReaderAsync())
+                    {
+                        if (reader.HasRows)
+                        {
+                            throw new ChangeException<string>("Такой тег уже существует")
+                            {
+                                TypeName = typeof(Tag).ToString(),
+                                FieldName = "Name",
+                                NewValue = newName
+                            };
+                        }
+                    }
+                }
+
                 using (var command = connection.CreateCommand())
                 {
                     command.CommandText =
@@ -64,6 +90,45 @@ namespace NoteKeeper.DataLayer.Sql
             using (var connection = new SqlConnection(_connectionString))
             {
                 await connection.OpenAsync();
+
+                //Проверка нарушения целостности
+                using (var command = connection.CreateCommand())
+                {
+                    command.CommandText =
+                        "select * from users " +
+                        "where id = @OwnerID;";
+                    command.Parameters.AddWithValue("@OwnerID", tag.OwnerId);
+
+                    using (var reader = await command.ExecuteReaderAsync())
+                    {
+                        if (!reader.HasRows)
+                        {
+                            throw new CreateException<Tag>("Пользователя, которому принадлежит этот тег, не существует")
+                            {
+                                Item = tag
+                            };
+                        }
+                    }
+                }
+                using (var command = connection.CreateCommand())
+                {
+                    command.CommandText =
+                        "select * from tags " +
+                        "where name = @Name and user_id = @OwnerId;";
+                    command.Parameters.AddWithValue("@OwnerId", tag.OwnerId);
+                    command.Parameters.AddWithValue("@Name", tag.Name);
+
+                    using (var reader = await command.ExecuteReaderAsync())
+                    {
+                        if (reader.HasRows)
+                        {
+                            throw new CreateException<Tag>("Такой тег уже существует")
+                            {
+                                Item = tag
+                            };
+                        }
+                    }
+                }
 
                 using (var command = connection.CreateCommand())
                 {
