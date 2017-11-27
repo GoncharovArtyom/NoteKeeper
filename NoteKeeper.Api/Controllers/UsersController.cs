@@ -10,12 +10,13 @@ using NoteKeeper.Model;
 using NoteKeeper.Api.Filters;
 using NoteKeeper.Logger;
 using System.Threading.Tasks;
+using System.Web.Configuration;
 
 namespace NoteKeeper.Api.Controllers
 {
     public class UsersController : ApiController
     {
-        private const string _connectionString = @"Server=localhost\SQLEXPRESS;Trusted_Connection=yes;Database=NoteKeeper;";
+        private readonly string _connectionString = WebConfigurationManager.ConnectionStrings["SqlConnectionString"].ConnectionString;
         private readonly IUsersRepository _usersRepository;
         private readonly INotesRepository _notesRepository;
         private readonly ITagsRepository _tagsRepository;
