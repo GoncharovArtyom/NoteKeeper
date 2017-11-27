@@ -6,13 +6,14 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Collections;
 using System.Threading.Tasks;
+using System.Configuration;
 
 namespace NoteKeeper.DataLayer.Sql.Test
 {
     [TestClass]
     public class UsersRepositoryTest
     {
-        private const String _connectionString = @"Server=localhost\SQLEXPRESS;Trusted_Connection=yes;Database=NoteKeeper;";
+        private readonly String _connectionString = ConfigurationManager.ConnectionStrings["SqlConnectionString"].ConnectionString;
         private readonly List<User> _usersToDelete = new List<User>();
 
         [TestMethod]

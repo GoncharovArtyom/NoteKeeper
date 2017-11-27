@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using NoteKeeper.DataLayer.Sql;
 using System.Data.SqlClient;
 using System.Threading.Tasks;
+using System.Configuration;
 
 namespace NoteKeeper.DataLayer.Sql.Test
 {
@@ -12,7 +13,7 @@ namespace NoteKeeper.DataLayer.Sql.Test
     public class NotesRepositoryTest
     {
         private static User _user;
-        private const String _connectionString = @"Server=localhost\SQLEXPRESS;Trusted_Connection=yes;Database=NoteKeeper;";
+        private static readonly String _connectionString = ConfigurationManager.ConnectionStrings["SqlConnectionString"].ConnectionString;
         private readonly List<Note> _notesToDelete = new List<Note>();
         private static INotesRepository _repository;
 
