@@ -2,6 +2,8 @@ using System.Web.Http;
 using WebActivatorEx;
 using NoteKeeper.Api;
 using Swashbuckle.Application;
+using System.IO;
+using System;
 
 [assembly: PreApplicationStartMethod(typeof(SwaggerConfig), "Register")]
 
@@ -61,7 +63,7 @@ namespace NoteKeeper.Api
                         //c.BasicAuth("basic")
                         //    .Description("Basic HTTP Authentication");
                         //
-						// NOTE: You must also configure 'EnableApiKeySupport' below in the SwaggerUI section
+                        // NOTE: You must also configure 'EnableApiKeySupport' below in the SwaggerUI section
                         //c.ApiKey("apiKey")
                         //    .Description("API Key Authentication")
                         //    .Name("apiKey")
@@ -101,7 +103,7 @@ namespace NoteKeeper.Api
                         // those comments into the generated docs and UI. You can enable this by providing the path to one or
                         // more Xml comment files.
                         //
-                        c.IncludeXmlComments(@"NoteKeeper.Api.xml");
+                        c.IncludeXmlComments(String.Format(@"{0}\bin\NoteKeeper.Api.xml", System.AppDomain.CurrentDomain.BaseDirectory));
 
                         // Swashbuckle makes a best attempt at generating Swagger compliant JSON schemas for the various types
                         // exposed in your API. However, there may be occasions when more control of the output is needed.
