@@ -15,5 +15,6 @@ namespace NoteKeeper.DataLayer
         Task DeleteAsync(Guid id);
         Task ChangeNameAsync(Guid id, string newName);
         Task<IEnumerable<User>> GetPartnersByNoteAsync(Guid noteId);
+        Task<IEnumerable<User>> GetWhoseEmailBeginsWith(string emailBegin);
     }
 }

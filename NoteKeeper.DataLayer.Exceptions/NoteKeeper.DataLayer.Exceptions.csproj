@@ -44,6 +44,7 @@
     <Compile Include="ChangeException.cs" />
     <Compile Include="CreateException.cs" />
     <Compile Include="CreateRelationException.cs" />
+    <Compile Include="GetException.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>

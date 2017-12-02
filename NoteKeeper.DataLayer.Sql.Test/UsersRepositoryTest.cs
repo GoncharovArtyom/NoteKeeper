@@ -149,6 +149,46 @@ namespace NoteKeeper.DataLayer.Sql.Test
             await notesRepository.DeleteAsync(note.Id);
         }
 
+        [TestMethod]
+        public async Task GetWhoseEmailBeginsWithTest()
+        {
+            //arrange
+            var user = new User
+            {
+                Name = "Vasiliy",
+                Email = "abc"
+            };
+            var user2 = new User
+            {
+                Name = "Ivan",
+                Email = "abd"
+            };
+            var user3 = new User
+            {
+                Name = "Ivan",
+                Email = "acd"
+            };
+
+            var repository = new UsersRepository(_connectionString);
+            user = await repository.CreateAsync(user);
+            user2 = await repository.CreateAsync(user2);
+            user3 = await repository.CreateAsync(user3);
+
+            _usersToDelete.Add(user);
+            _usersToDelete.Add(user2);
+            _usersToDelete.Add(user3);
+
+            //act
+            var result = new List<User>(await repository.GetWhoseEmailBeginsWith("ab"));
+
+            //assert
+            Assert.AreEqual(result.Count, 2);
+            foreach (var recievedUser in result)
+            {
+                Assert.IsTrue(recievedUser.Id == user2.Id || recievedUser.Id == user.Id);
+            }
+        }
+
         [TestCleanup]
         public async Task CleanData()
         {

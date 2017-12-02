@@ -215,5 +215,44 @@ namespace NoteKeeper.DataLayer.Sql
                 }
             }
         }
+
+        public async Task<IEnumerable<User>> GetWhoseEmailBeginsWith(string emailBegin)
+        {
+            var result = new List<User>();
+
+            if(emailBegin == "")
+            {
+                throw new GetException("Запрашиваемое начало email не может быть пустым") { ItemName = "Users"};
+            }
+
+            using (var connection = new SqlConnection(_connectionString))
+            {
+                await connection.OpenAsync();
+
+                using (var command = connection.CreateCommand())
+                {
+                    command.CommandText =
+                        "select * from Users " +
+                        "where LEFT(email, @length) = @emailBegin;";
+                    command.Parameters.AddWithValue("@length", emailBegin.Length);
+                    command.Parameters.AddWithValue("@emailBegin", emailBegin);
+                    var reader = await command.ExecuteReaderAsync();
+
+                    while (await reader.ReadAsync())
+                    {
+                        var current = new User()
+                        {
+                            Id = new Guid(reader["id"].ToString()),
+                            Name = reader["name"].ToString(),
+                            Email = reader["email"].ToString()
+                        };
+
+                        result.Add(current);
+                    }
+
+                    return result;
+                }
+            }
+        }
     }
 }

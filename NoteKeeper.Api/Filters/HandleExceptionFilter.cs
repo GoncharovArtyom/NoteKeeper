@@ -54,6 +54,19 @@ namespace NoteKeeper.Api.Filters
                 var createEx = ex as CreateRelationException;
                 Log.Instance.Error("Невозможно добавить связь {0}, FirstName = {1}, SecondName = {2}, FirstId = {3}, SecondId = {4}: {5}", createEx.RelationName, createEx.FirstItemTypeName, createEx.FirstItemTypeName, createEx.FirstItemId, createEx.SecondItemId, createEx.Message);
             }
+            else if(ex is GetException)
+            {
+                context.Response = context.Request.CreateErrorResponse(HttpStatusCode.BadRequest, ex.Message);
+
+                var getEx = ex as GetException;
+                Log.Instance.Error("Невозможно получить {0}, потому что {1}", getEx.ItemName, getEx.Message);
+            }
+            else if(ex is ArgumentNullException)
+            {
+                context.Response = context.Request.CreateErrorResponse(HttpStatusCode.BadRequest, ex.Message);
+
+                Log.Instance.Error("Параметр запроса не указан: {0}", ex.Message);
+            }
             else
             {
                 context.Response = new HttpResponseMessage(HttpStatusCode.InternalServerError);

@@ -59,6 +59,26 @@ namespace NoteKeeper.Api.Controllers
         }
 
         /// <summary>
+        /// Получение всех пользователей, у которых Email начинается с заданной строки
+        /// </summary>
+        /// <param name="emailBegin">Начало Email</param>
+        /// <returns>Коллекция пользователей</returns>
+        [HttpGet]
+        [Route("api/users/email-begins-with")]
+        [HandleExceptionFilter]
+        public async Task<IEnumerable<User>> GetWhoseEmailBeginsWith([FromUri] string emailBegin)
+        {
+            if(emailBegin == null)
+            {
+                throw new ArgumentNullException("emailBegin");
+            }
+
+            Log.Instance.Info("Получение пользователей: Email начинается с {0}", emailBegin);
+
+            return await _usersRepository.GetWhoseEmailBeginsWith(emailBegin);
+        }
+
+        /// <summary>
         /// Создание нового пользователя
         /// </summary>
         /// <param name="newUser">Объект - новый пользователь</param>
