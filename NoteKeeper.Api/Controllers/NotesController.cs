@@ -11,6 +11,7 @@ using NoteKeeper.Api.Filters;
 using NoteKeeper.Logger;
 using System.Threading.Tasks;
 using System.Web.Configuration;
+using NoteKeeper.Api.NotificationService;
 
 namespace NoteKeeper.Api.Controllers
 {
@@ -26,6 +27,54 @@ namespace NoteKeeper.Api.Controllers
             _usersRepository = new UsersRepository(_connectionString);
             _notesRepository = new NotesRepository(_connectionString);
             _tagsRepository = new TagsRepository(_connectionString);
+        }
+
+        /// <summary>
+        /// Получение заметки
+        /// </summary>
+        /// <param name="note_id">Идентификатор заметки</param>
+        /// <returns>Заметка</returns>
+        [HttpGet]
+        [Route("api/notes/{note_id}")]
+        [HandleExceptionFilter]
+        [ValidateModelFilter]
+        public async Task<Note> GetNote(Guid note_id)
+        {
+            Log.Instance.Info("Полуение заметки: Id = {0}", note_id);
+
+            return await _notesRepository.GetAsync(note_id);
+        }
+
+        /// <summary>
+        /// Получение чужой заметки
+        /// </summary>
+        /// <param name="note_id">Идентификатор заметки</param>
+        /// <returns>Заметка</returns>
+        [HttpGet]
+        [Route("api/notes/shared/{note_id}")]
+        [HandleExceptionFilter]
+        [ValidateModelFilter]
+        public async Task<SharedNote> GetSharedNote(Guid note_id)
+        {
+            Log.Instance.Info("Полуение чужой заметки: Id = {0}", note_id);
+
+            Note note = await _notesRepository.GetAsync(note_id);
+            if (note != null)
+            {
+                User owner = await _usersRepository.GetAsync(note.OwnerId);
+                return new SharedNote()
+                {
+                    Text = note.Text,
+                    Heading = note.Heading,
+                    CreationDate = note.CreationDate,
+                    LastUpdateDate = note.LastUpdateDate,
+                    Owner = owner,
+                    Id = note.Id
+                };
+            } else
+            {
+                return null;
+            }
         }
 
         /// <summary>
@@ -51,11 +100,33 @@ namespace NoteKeeper.Api.Controllers
         [HttpDelete]
         [Route("api/notes/{id}")]
         [HandleExceptionFilter]
-        public async Task DeleteNote(Guid id)
+        public async Task DeleteNote(Guid id, [FromUri] Guid requestOwnerId)
         {
             Log.Instance.Info("Удаление заметки: Id = {0}", id);
 
-            await _notesRepository.DeleteAsync(id);
+            if (requestOwnerId == null)
+            {
+                throw new ArgumentNullException("requestOwnerId");
+            }
+
+            Note changedNote = await _notesRepository.GetAsync(id);
+
+            if (changedNote != null)
+            {
+                await _notesRepository.DeleteAsync(id);
+
+                if (requestOwnerId != changedNote.OwnerId)
+                {
+                    NotificationTicker.Instance.NotifyAboutNoteChanged(changedNote, changedNote.OwnerId);
+                }
+                foreach (User partner in changedNote.Partners)
+                {
+                    if (requestOwnerId != partner.Id)
+                    {
+                        NotificationTicker.Instance.NotifyAboutNoteChanged(changedNote, partner.Id);
+                    }
+                }
+            }
         }
 
         /// <summary>
@@ -67,11 +138,30 @@ namespace NoteKeeper.Api.Controllers
         [HttpPut]
         [Route("api/notes/{id}/heading")]
         [HandleExceptionFilter]
-        public async Task<Note> ChangeNoteHeading(Guid id, [FromBody] string newHeading)
+        public async Task<Note> ChangeNoteHeading(Guid id, [FromBody] string newHeading, [FromUri] Guid requestOwnerId)
         {
             Log.Instance.Info("Изменение названия заметки: Id = {0}", id);
 
-            return await _notesRepository.ChangeHeadingAsync(id, newHeading);
+            if (requestOwnerId == null)
+            {
+                throw new ArgumentNullException("requestOwnerId");
+            }
+
+            Note changedNote = await _notesRepository.ChangeHeadingAsync(id, newHeading);
+
+            if (requestOwnerId != changedNote.OwnerId)
+            {
+                NotificationTicker.Instance.NotifyAboutNoteChanged(changedNote, changedNote.OwnerId);
+            }
+            foreach (User partner in changedNote.Partners)
+            {
+                if (requestOwnerId != partner.Id)
+                {
+                    NotificationTicker.Instance.NotifyAboutNoteChanged(changedNote, partner.Id);
+                }
+            }
+
+            return changedNote;
         }
 
         /// <summary>
@@ -83,11 +173,30 @@ namespace NoteKeeper.Api.Controllers
         [HttpPut]
         [Route("api/notes/{id}/text")]
         [HandleExceptionFilter]
-        public async Task<Note> ChangeNoteText(Guid id, [FromBody] string newText)
+        public async Task<Note> ChangeNoteText(Guid id, [FromBody] string newText, [FromUri] Guid requestOwnerId)
         {
             Log.Instance.Info("Изменение текста заметки: Id = {0}", id);
 
-            return await _notesRepository.ChangeTextAsync(id, newText);
+            if (requestOwnerId == null)
+            {
+                throw new ArgumentNullException("requestOwnerId");
+            }
+
+            Note changedNote = await _notesRepository.ChangeTextAsync(id, newText);
+
+            if (requestOwnerId != changedNote.OwnerId)
+            {
+                NotificationTicker.Instance.NotifyAboutNoteChanged(changedNote, changedNote.OwnerId);
+            }
+            foreach (User partner in changedNote.Partners)
+            {
+                if (requestOwnerId != partner.Id)
+                {
+                    NotificationTicker.Instance.NotifyAboutNoteChanged(changedNote, partner.Id);
+                }
+            }
+
+            return changedNote;
         }
 
         /// <summary>
@@ -172,11 +281,21 @@ namespace NoteKeeper.Api.Controllers
         [HttpDelete]
         [Route("api/notes/{note_id}/shared-to-users/{user_id}")]
         [HandleExceptionFilter]
-        public async Task RemoveAccessToNoteFromUser(Guid note_id, Guid user_id)
+        public async Task RemoveAccessToNoteFromUser(Guid note_id, Guid user_id, [FromUri] Guid requestOwnerId)
         {
+            if(requestOwnerId == null)
+            {
+                throw new ArgumentNullException("requestOwnerId");
+            }
+
             Log.Instance.Info("Удаление доступа к заметке для пользователя: NoteId = {0}, UserId = {1}", note_id, user_id);
 
             await _notesRepository.RemoveAccessAsync(note_id, user_id);
+
+            if(requestOwnerId != user_id)
+            {
+                NotificationTicker.Instance.NotifyAboutDeniedAccess(note_id, user_id);
+            }
         }
     }
 }
